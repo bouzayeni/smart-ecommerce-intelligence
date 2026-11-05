@@ -1,9 +1,15 @@
-"""Load registered models from the MLflow registry (latest version), cached per process."""
+"""Load registered models from the MLflow registry, cached per process.
 
+The API serves the version behind the `champion` alias (set by `python -m ml.promote_model`
+after its quality gate). If a model has no champion yet it falls back to the latest version
+and says so in the logs and in /api/models/status."""
+
+import json
 import logging
 import threading
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 
 from app.core.config import REPO_ROOT, get_settings
 
@@ -11,11 +17,28 @@ log = logging.getLogger("app.models")
 _lock = threading.Lock()
 
 
+CHAMPION = "champion"
+
+
 @dataclass
 class LoadedModel:
     name: str
     version: str
     model: object
+    source: str = CHAMPION  # "champion" or "latest (no champion alias)"
+
+
+def _serving_version(client, name: str):
+    """(version, source): the champion alias, else the highest version number."""
+    from mlflow.exceptions import MlflowException
+
+    try:
+        return client.get_model_version_by_alias(name, CHAMPION), CHAMPION
+    except MlflowException:
+        versions = client.search_model_versions(f"name = '{name}'")
+        if not versions:
+            raise LookupError(f"No registered versions for model {name!r}") from None
+        return max(versions, key=lambda v: int(v.version)), "latest (no champion alias)"
 
 
 def tracking_uri() -> str:
@@ -35,12 +58,15 @@ def registry_versions() -> list[dict]:
         for rm in client.search_registered_models():
             versions = client.search_model_versions(f"name = '{rm.name}'")
             latest = max(versions, key=lambda v: int(v.version))
+            serving, source = _serving_version(client, rm.name)
             out.append(
                 {
                     "name": rm.name,
                     "latest_version": latest.version,
+                    "serving_version": serving.version,
+                    "serving_source": source,
                     "created_at": latest.creation_timestamp,
-                    "run_id": latest.run_id,
+                    "run_id": serving.run_id,
                     "status": latest.status,
                 }
             )
@@ -52,15 +78,36 @@ def registry_versions() -> list[dict]:
 
 @lru_cache(maxsize=4)
 def load_latest(name: str) -> LoadedModel:
+    """The serving version (champion, else latest). Cached: restart the API after promoting.
+
+    With SERVING_MODELS_DIR set (containers), loads the bundle written by
+    `python -m ml.export_serving_models` instead of resolving registry artifact paths."""
+    bundle_dir = get_settings().serving_models_dir
+    if bundle_dir is not None:
+        return _load_bundle(name, bundle_dir)
     with _lock:
         import mlflow
         from mlflow.tracking import MlflowClient
 
         mlflow.set_tracking_uri(tracking_uri())
-        versions = MlflowClient().search_model_versions(f"name = '{name}'")
-        if not versions:
-            raise LookupError(f"No registered versions for model {name!r}")
-        latest = max(versions, key=lambda v: int(v.version))
-        model = mlflow.sklearn.load_model(f"models:/{name}/{latest.version}")
-        log.info("Loaded model %s v%s", name, latest.version)
-        return LoadedModel(name, latest.version, model)
+        version, source = _serving_version(MlflowClient(), name)
+        model = mlflow.sklearn.load_model(f"models:/{name}/{version.version}")
+        if source != CHAMPION:
+            log.warning(
+                "Model %s has no %s alias; serving latest v%s", name, CHAMPION, version.version
+            )
+        log.info("Loaded model %s v%s (%s)", name, version.version, source)
+        return LoadedModel(name, version.version, model, source)
+
+
+def _load_bundle(name: str, bundle_dir: Path) -> LoadedModel:
+    import mlflow
+
+    manifest_path = bundle_dir / name / "manifest.json"
+    if not manifest_path.is_file():
+        raise LookupError(f"No serving bundle for model {name!r} in {bundle_dir}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    with _lock:
+        model = mlflow.sklearn.load_model(str(bundle_dir / name / "model"))
+    log.info("Loaded model %s v%s from serving bundle", name, manifest["version"])
+    return LoadedModel(name, manifest["version"], model, f"bundle ({manifest['alias']})")

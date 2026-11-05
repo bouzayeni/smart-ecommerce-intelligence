@@ -26,7 +26,7 @@ permission-controlled AI business assistant.
 | 9 | FastAPI backend | Done — [API docs](docs/api.md) |
 | 10 | React frontend | Done — [frontend docs](docs/frontend.md) |
 | 11 | AI business assistant | Done — [assistant docs](docs/assistant.md); live LLM check pending an `ANTHROPIC_API_KEY` |
-| 12 | MLflow, Docker, CI/CD, security | Not started |
+| 12 | MLflow, Docker, CI/CD, security | Done — [deployment & MLOps](docs/deployment.md), [security](docs/security.md); Docker images and CI not yet run (no Docker locally, no remote) |
 | 13 | Integration and end-to-end tests | Not started |
 | 14 | Documentation and portfolio | Not started |
 
@@ -143,7 +143,7 @@ uv run pre-commit install
 
 ```bash
 uv run pytest                                          # all tests (DB tests need step 4)
-uv run pytest -m "not db"                              # what CI runs
+uv run pytest -m "not db and not llm"                 # what CI runs
 uv run ruff check . && uv run ruff format --check .    # lint
 uv run python -m data_engineering.scripts.profile_raw  # Phase 0 raw-data profile report
 uv run python -m data_engineering.scripts.make_sample  # regenerate data/sample from data/raw
@@ -155,6 +155,14 @@ uv run python -m data_engineering.scripts.assess_quality --raw-dir data/sample  
 # Exploration notebook (optional dependency group)
 uv sync --group notebooks
 uv run --group notebooks jupyter nbconvert --to notebook --execute --inplace notebooks/exploration/01_exploratory_analysis.ipynb
+```
+
+Model promotion, Docker and CI: see [docs/deployment.md](docs/deployment.md).
+
+```bash
+uv run python -m ml.promote_model repurchase_propensity --dry-run   # quality gate vs champion
+uv run python -m ml.export_serving_models                          # champion bundles for containers
+docker compose --profile app up -d --build                          # web on http://localhost:8080
 ```
 
 ## Database roles
