@@ -1,0 +1,130 @@
+table fact_reviews
+	lineageTag: 3c4fdb04-d033-5848-b620-dfa77b3b1008
+
+	column review_id
+		dataType: string
+		lineageTag: 0579d403-b6e3-536d-8136-b4dd7f80cdfc
+		summarizeBy: none
+		sourceColumn: review_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column order_id
+		dataType: string
+		lineageTag: 632914fc-0699-5460-b1c8-248247a2aae7
+		summarizeBy: none
+		sourceColumn: order_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_unique_id
+		dataType: string
+		lineageTag: 5dc3d8c5-7f6b-5f49-b190-6891099cba47
+		summarizeBy: none
+		sourceColumn: customer_unique_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column review_created_date_key
+		dataType: int64
+		formatString: 0
+		isHidden
+		lineageTag: e6294bd1-4180-5da9-adec-684cd1ce892c
+		summarizeBy: none
+		sourceColumn: review_created_date_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column review_score
+		dataType: int64
+		formatString: 0
+		lineageTag: c2af325e-09ba-58e2-8337-085cf144f728
+		summarizeBy: none
+		sourceColumn: review_score
+
+		annotation SummarizationSetBy = Automatic
+
+	column review_created_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: a96b75a5-dbb6-545a-91a4-fb56227c036b
+		summarizeBy: none
+		sourceColumn: review_created_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column review_answered_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: dd20a3e0-c74e-5d1a-beea-87341a62a95d
+		summarizeBy: none
+		sourceColumn: review_answered_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column review_comment_title
+		dataType: string
+		lineageTag: c6a5708b-5686-5c85-b05f-0e72a869aae6
+		summarizeBy: none
+		sourceColumn: review_comment_title
+
+		annotation SummarizationSetBy = Automatic
+
+	column review_comment_message
+		dataType: string
+		lineageTag: 0efcc88e-0608-5a36-bca3-ff6773e9f370
+		summarizeBy: none
+		sourceColumn: review_comment_message
+
+		annotation SummarizationSetBy = Automatic
+
+	column has_comment_message
+		dataType: boolean
+		lineageTag: d845dc3e-51ad-56ca-80ad-ce4773beb0cf
+		summarizeBy: none
+		sourceColumn: has_comment_message
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_selected_for_order
+		dataType: boolean
+		lineageTag: d06f99d2-1b52-52a5-8792-9eb75014bfa1
+		summarizeBy: none
+		sourceColumn: is_selected_for_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column order_status
+		dataType: string
+		lineageTag: 25627115-a0d4-5fd1-9584-d8a6c87e3ff1
+		summarizeBy: none
+		sourceColumn: order_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_order_late
+		dataType: boolean
+		lineageTag: 8bfd127f-d8b0-53af-aec6-f71fb0443b19
+		summarizeBy: none
+		sourceColumn: is_order_late
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_in_analysis_window
+		dataType: boolean
+		lineageTag: 97ca29c7-b6c1-5655-99e9-8790d8d26954
+		summarizeBy: none
+		sourceColumn: is_in_analysis_window
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_reviews = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(PostgresServer, PostgresDatabase),
+				    Data = Source{[Schema="marts", Item="fact_reviews"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

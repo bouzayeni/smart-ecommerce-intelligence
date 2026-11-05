@@ -1,0 +1,56 @@
+table kpi_customer_cohorts
+	lineageTag: a618adc3-de5b-55f7-9141-0f46e7ec5ae5
+
+	column cohort
+		dataType: string
+		lineageTag: 09fb24f1-dc7a-555c-a348-dcfd286451d5
+		summarizeBy: none
+		sourceColumn: cohort
+
+		annotation SummarizationSetBy = Automatic
+
+	column months_since_first_order
+		dataType: int64
+		formatString: 0
+		lineageTag: a81336c1-0c66-5744-b66e-3c90587bfa99
+		summarizeBy: none
+		sourceColumn: months_since_first_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column cohort_customers
+		dataType: int64
+		formatString: 0
+		lineageTag: d87d0233-dffb-54a7-82a3-b3afc4ffe518
+		summarizeBy: none
+		sourceColumn: cohort_customers
+
+		annotation SummarizationSetBy = Automatic
+
+	column active_customers
+		dataType: int64
+		formatString: 0
+		lineageTag: 1655ac30-d970-5197-973c-cd681e30ee37
+		summarizeBy: none
+		sourceColumn: active_customers
+
+		annotation SummarizationSetBy = Automatic
+
+	column retention_rate
+		dataType: double
+		lineageTag: 632d0160-2c7f-5993-aa48-acd4a0154157
+		summarizeBy: none
+		sourceColumn: retention_rate
+
+		annotation SummarizationSetBy = Automatic
+
+	partition kpi_customer_cohorts = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(PostgresServer, PostgresDatabase),
+				    Data = Source{[Schema="marts", Item="kpi_customer_cohorts"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

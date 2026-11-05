@@ -1,0 +1,25 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	discourageImplicitMeasures
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_QueryOrder = ["PostgresServer", "PostgresDatabase", "dim_date", "dim_customers", "dim_products", "dim_sellers", "dim_payment_type", "dim_geolocation", "fact_orders", "fact_order_items", "fact_payments", "fact_reviews", "kpi_customer_cohorts", "kpi_customer_concentration"]
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+ref table dim_date
+ref table dim_customers
+ref table dim_products
+ref table dim_sellers
+ref table dim_payment_type
+ref table dim_geolocation
+ref table fact_orders
+ref table fact_order_items
+ref table fact_payments
+ref table fact_reviews
+ref table kpi_customer_cohorts
+ref table kpi_customer_concentration

@@ -1,0 +1,52 @@
+version: 2
+
+# KPI views over the star schema. Definitions and formulas: docs/kpi_dictionary.md.
+# All use the analysis window; revenue KPIs use revenue statuses (BR-02, BR-03).
+
+models:
+  - name: kpi_overview
+    description: One row of headline KPIs for the analysis window.
+  - name: kpi_monthly_sales
+    description: Monthly GMV, orders, customers, AOV; MoM growth between complete months only.
+    columns:
+      - name: year_month
+        data_tests: [unique, not_null]
+  - name: kpi_sales_by_category
+    description: Item-level GMV by English category, with share and rank.
+    columns:
+      - name: category_name
+        data_tests: [unique, not_null]
+  - name: kpi_sales_by_state
+    description: Sales and delivery KPIs by customer state at order time.
+    columns:
+      - name: state
+        data_tests: [unique, not_null]
+  - name: kpi_product_ranking
+    description: Products ranked by GMV (anonymised product_id + category).
+    columns:
+      - name: product_id
+        data_tests: [unique, not_null]
+  - name: kpi_operations_monthly
+    description: Monthly delivery performance (eligible orders) and cancellation rate.
+    columns:
+      - name: year_month
+        data_tests: [unique, not_null]
+  - name: kpi_review_distribution
+    description: Per-order review score distribution, split by delivery outcome.
+    columns:
+      - name: review_score
+        data_tests: [unique, not_null]
+  - name: kpi_customer_cohorts
+    description: Monthly acquisition cohorts and retention by months since first order.
+    data_tests:
+      - unique: {arguments: {column_name: "cohort || '-' || months_since_first_order"}}
+  - name: kpi_customer_concentration
+    description: GMV share by customer decile (1 = top 10% of spenders).
+    columns:
+      - name: gmv_decile
+        data_tests: [unique, not_null]
+  - name: kpi_payment_mix
+    description: Payment value and installments by payment type.
+    columns:
+      - name: payment_type
+        data_tests: [unique, not_null]

@@ -1,0 +1,414 @@
+# DAX measure catalog: the single source for
+#   - the TMDL semantic model   (powerbi/OlistIntelligence.SemanticModel, generated)
+#   - powerbi/measures.dax       (generated, for copy/paste or Tabular Editor)
+#   - reconciliation targets     (each `target.sql` is the expected value, from the warehouse)
+# Generate:  uv run python -m data_engineering.scripts.build_powerbi_model
+# Definitions of every KPI: docs/kpi_dictionary.md (ids in `kpi`).
+#
+# Conventions: revenue measures filter is_revenue_order AND is_in_analysis_window (BR-02/03);
+# delivery measures filter is_delivery_kpi_eligible AND is_in_analysis_window (BR-07).
+# Money is BRL. GMV is not profit (BR-03).
+
+measures:
+  # ------------------------------------------------------------------ Sales
+  - name: GMV (BRL)
+    table: fact_orders
+    folder: Sales
+    format: "#,0.00"
+    kpi: S1
+    description: Σ(price + freight) of revenue orders in the analysis window.
+    expression: |
+      CALCULATE (
+          SUM ( fact_orders[gmv] ),
+          fact_orders[is_revenue_order] = TRUE (),
+          fact_orders[is_in_analysis_window] = TRUE ()
+      )
+    target: {sql: "select gmv from marts.kpi_overview"}
+
+  - name: Revenue Orders
+    table: fact_orders
+    folder: Sales
+    format: "#,0"
+    kpi: S2
+    description: Orders with a revenue status in the analysis window.
+    expression: |
+      CALCULATE (
+          COUNTROWS ( fact_orders ),
+          fact_orders[is_revenue_order] = TRUE (),
+          fact_orders[is_in_analysis_window] = TRUE ()
+      )
+    target: {sql: "select revenue_orders from marts.kpi_overview"}
+
+  - name: Average Order Value (BRL)
+    table: fact_orders
+    folder: Sales
+    format: "#,0.00"
+    kpi: S3
+    description: GMV / revenue orders.
+    expression: DIVIDE ( [GMV (BRL)], [Revenue Orders] )
+    target: {sql: "select sum(gmv) / count(*) from marts.fact_orders where is_revenue_order and is_in_analysis_window"}
+
+  - name: Merchandise Value (BRL)
+    table: fact_orders
+    folder: Sales
+    format: "#,0.00"
+    kpi: S1
+    description: Σ price (GMV without freight).
+    expression: |
+      CALCULATE (
+          SUM ( fact_orders[price_total] ),
+          fact_orders[is_revenue_order] = TRUE (),
+          fact_orders[is_in_analysis_window] = TRUE ()
+      )
+    target: {sql: "select merchandise_value from marts.kpi_overview"}
+
+  - name: GMV Previous Month (BRL)
+    table: fact_orders
+    folder: Sales
+    format: "#,0.00"
+    kpi: S4
+    description: GMV of the previous calendar month (time intelligence on dim_date).
+    expression: CALCULATE ( [GMV (BRL)], DATEADD ( dim_date[date_day], -1, MONTH ) )
+    target:
+      dax_filter: dim_date[year_month] = "2018-07"
+      sql: "select gmv from marts.kpi_monthly_sales where year_month = '2018-06'"
+
+  - name: GMV MoM Growth %
+    table: fact_orders
+    folder: Sales
+    format: "0.00%"
+    kpi: S4
+    description: Month-over-month GMV growth; blank unless one month is selected and both it and the previous month are complete (Aug 2018 is partial).
+    expression: |
+      VAR IsOneMonth = HASONEVALUE ( dim_date[year_month] )
+      VAR CurrentComplete = SELECTEDVALUE ( dim_date[is_complete_month_in_window] )
+      VAR PreviousComplete =
+          CALCULATE (
+              SELECTEDVALUE ( dim_date[is_complete_month_in_window] ),
+              DATEADD ( dim_date[date_day], -1, MONTH )
+          )
+      VAR Previous = [GMV Previous Month (BRL)]
+      RETURN
+          IF (
+              IsOneMonth && CurrentComplete = TRUE () && PreviousComplete = TRUE (),
+              DIVIDE ( [GMV (BRL)] - Previous, Previous )
+          )
+    target:
+      dax_filter: dim_date[year_month] = "2018-07"
+      sql: "select gmv_mom_growth from marts.kpi_monthly_sales where year_month = '2018-07'"
+
+  - name: Item GMV (BRL)
+    table: fact_order_items
+    folder: Sales
+    format: "#,0.00"
+    kpi: S5
+    description: Item-level GMV; use for category, product and seller breakdowns.
+    expression: |
+      CALCULATE (
+          SUM ( fact_order_items[gmv] ),
+          fact_order_items[is_revenue_order] = TRUE (),
+          fact_order_items[is_in_analysis_window] = TRUE ()
+      )
+    target: {sql: "select gmv from marts.kpi_overview"}
+
+  - name: Units Sold
+    table: fact_order_items
+    folder: Sales
+    format: "#,0"
+    kpi: S5
+    description: Item rows (one row = one unit, BR-05) of revenue orders in the window.
+    expression: |
+      CALCULATE (
+          COUNTROWS ( fact_order_items ),
+          fact_order_items[is_revenue_order] = TRUE (),
+          fact_order_items[is_in_analysis_window] = TRUE ()
+      )
+    target: {sql: "select sum(units_sold) from marts.kpi_sales_by_category"}
+
+  - name: Category Share of GMV %
+    table: fact_order_items
+    folder: Sales
+    format: "0.00%"
+    kpi: S5
+    description: Item GMV in the current context / item GMV across all categories.
+    expression: DIVIDE ( [Item GMV (BRL)], CALCULATE ( [Item GMV (BRL)], REMOVEFILTERS ( dim_products ) ) )
+    target:
+      dax_filter: dim_products[category_name] = "health_beauty"
+      sql: "select share_of_gmv from marts.kpi_sales_by_category where category_name = 'health_beauty'"
+
+  - name: Product GMV Rank
+    table: fact_order_items
+    folder: Sales
+    format: "#,0"
+    kpi: S7
+    description: Rank of the product in context by item GMV (1 = top); blank without a single product.
+    expression: |
+      IF (
+          HASONEVALUE ( dim_products[product_id] ) && NOT ISBLANK ( [Item GMV (BRL)] ),
+          RANKX ( ALL ( dim_products[product_id] ), [Item GMV (BRL)], , DESC, SKIP )
+      )
+    target:
+      dax_filter: dim_products[product_id] = "6cdd53843498f92890544667809f1595"
+      sql: "select gmv_rank from marts.kpi_product_ranking where product_id = '6cdd53843498f92890544667809f1595'"
+
+  # ------------------------------------------------------------------ Customers
+  - name: Customers
+    table: fact_orders
+    folder: Customers
+    format: "#,0"
+    kpi: C1
+    description: Distinct customer_unique_id with at least one revenue order in context.
+    expression: |
+      CALCULATE (
+          DISTINCTCOUNT ( fact_orders[customer_unique_id] ),
+          fact_orders[is_revenue_order] = TRUE (),
+          fact_orders[is_in_analysis_window] = TRUE ()
+      )
+    target: {sql: "select customers from marts.kpi_overview"}
+
+  - name: Repeat Customers
+    table: fact_orders
+    folder: Customers
+    format: "#,0"
+    kpi: C2
+    description: Customers with 2+ revenue orders within the current filter context.
+    expression: |
+      VAR CustomerOrders =
+          CALCULATETABLE (
+              ADDCOLUMNS (
+                  VALUES ( fact_orders[customer_unique_id] ),
+                  "@orders", CALCULATE ( COUNTROWS ( fact_orders ) )
+              ),
+              fact_orders[is_revenue_order] = TRUE (),
+              fact_orders[is_in_analysis_window] = TRUE ()
+          )
+      RETURN
+          COUNTROWS ( FILTER ( CustomerOrders, [@orders] >= 2 ) )
+    target: {sql: "select repeat_customers from marts.kpi_overview"}
+
+  - name: Repeat Purchase Rate %
+    table: fact_orders
+    folder: Customers
+    format: "0.00%"
+    kpi: C2
+    description: Repeat customers / customers.
+    expression: DIVIDE ( [Repeat Customers], [Customers] )
+    target: {sql: "select repeat_purchase_rate from marts.kpi_overview"}
+
+  - name: Avg Orders per Customer
+    table: fact_orders
+    folder: Customers
+    format: "0.0000"
+    kpi: C3
+    description: Revenue orders / customers.
+    expression: DIVIDE ( [Revenue Orders], [Customers] )
+    target: {sql: "select avg_orders_per_customer from marts.kpi_overview"}
+
+  - name: Top 10% Customers GMV Share %
+    table: fact_orders
+    folder: Customers
+    format: "0.00%"
+    kpi: C4
+    description: Share of GMV from the top 10% of customers by GMV (ties at the boundary can add customers).
+    expression: |
+      VAR TopCount = ROUNDUP ( [Customers] * 0.1, 0 )
+      VAR CustomerGmv =
+          CALCULATETABLE (
+              ADDCOLUMNS ( VALUES ( fact_orders[customer_unique_id] ), "@gmv", [GMV (BRL)] ),
+              fact_orders[is_revenue_order] = TRUE (),
+              fact_orders[is_in_analysis_window] = TRUE ()
+          )
+      VAR TopCustomers = TOPN ( TopCount, CustomerGmv, [@gmv], DESC )
+      RETURN
+          DIVIDE ( SUMX ( TopCustomers, [@gmv] ), [GMV (BRL)] )
+    target:
+      sql: "select share_of_gmv from marts.kpi_customer_concentration where gmv_decile = 1"
+      tolerance: 0.001
+
+  # ------------------------------------------------------------------ Operations
+  - name: Delivery-Eligible Orders
+    table: fact_orders
+    folder: Operations
+    format: "#,0"
+    kpi: O1
+    description: Population for delivery KPIs (BR-07).
+    expression: |
+      CALCULATE (
+          COUNTROWS ( fact_orders ),
+          fact_orders[is_delivery_kpi_eligible] = TRUE (),
+          fact_orders[is_in_analysis_window] = TRUE ()
+      )
+    target: {sql: "select delivery_eligible_orders from marts.kpi_overview"}
+
+  - name: Avg Delivery Days
+    table: fact_orders
+    folder: Operations
+    format: "0.00"
+    kpi: O1
+    description: Mean purchase-to-delivery time in days, eligible orders.
+    expression: |
+      CALCULATE (
+          AVERAGE ( fact_orders[delivery_days] ),
+          fact_orders[is_delivery_kpi_eligible] = TRUE (),
+          fact_orders[is_in_analysis_window] = TRUE ()
+      )
+    target: {sql: "select avg_delivery_days from marts.kpi_overview", tolerance: 0.0001}
+
+  - name: Median Delivery Days
+    table: fact_orders
+    folder: Operations
+    format: "0.00"
+    kpi: O1
+    description: Median purchase-to-delivery time in days, eligible orders.
+    expression: |
+      CALCULATE (
+          MEDIAN ( fact_orders[delivery_days] ),
+          fact_orders[is_delivery_kpi_eligible] = TRUE (),
+          fact_orders[is_in_analysis_window] = TRUE ()
+      )
+    target: {sql: "select median_delivery_days from marts.kpi_overview", tolerance: 0.0001}
+
+  - name: Late Delivery Rate %
+    table: fact_orders
+    folder: Operations
+    format: "0.00%"
+    kpi: O3
+    description: Eligible orders delivered after the estimated date / eligible orders.
+    expression: |
+      DIVIDE (
+          CALCULATE (
+              COUNTROWS ( fact_orders ),
+              fact_orders[is_delivery_kpi_eligible] = TRUE (),
+              fact_orders[is_in_analysis_window] = TRUE (),
+              fact_orders[is_late] = TRUE ()
+          ),
+          [Delivery-Eligible Orders]
+      )
+    target: {sql: "select late_delivery_rate from marts.kpi_overview"}
+
+  - name: On-Time Delivery Rate %
+    table: fact_orders
+    folder: Operations
+    format: "0.00%"
+    kpi: O2
+    description: 1 − late delivery rate (blank without eligible orders).
+    expression: IF ( NOT ISBLANK ( [Delivery-Eligible Orders] ), 1 - [Late Delivery Rate %] )
+    target: {sql: "select on_time_delivery_rate from marts.kpi_overview"}
+
+  - name: All Orders
+    table: fact_orders
+    folder: Operations
+    format: "#,0"
+    kpi: O4
+    description: Orders of any status purchased in the analysis window.
+    expression: CALCULATE ( COUNTROWS ( fact_orders ), fact_orders[is_in_analysis_window] = TRUE () )
+    target: {sql: "select all_orders from marts.kpi_overview"}
+
+  - name: Cancellation Rate %
+    table: fact_orders
+    folder: Operations
+    format: "0.00%"
+    kpi: O4
+    description: Orders with status canceled or unavailable / all orders (status at extract time).
+    expression: |
+      DIVIDE (
+          CALCULATE (
+              COUNTROWS ( fact_orders ),
+              fact_orders[is_in_analysis_window] = TRUE (),
+              fact_orders[order_status] IN { "canceled", "unavailable" }
+          ),
+          [All Orders]
+      )
+    target: {sql: "select cancellation_rate from marts.kpi_overview"}
+
+  - name: Avg Freight per Order (BRL)
+    table: fact_orders
+    folder: Operations
+    format: "#,0.00"
+    kpi: O5
+    description: Σ freight / revenue orders.
+    expression: |
+      DIVIDE (
+          CALCULATE (
+              SUM ( fact_orders[freight_total] ),
+              fact_orders[is_revenue_order] = TRUE (),
+              fact_orders[is_in_analysis_window] = TRUE ()
+          ),
+          [Revenue Orders]
+      )
+    target: {sql: "select sum(freight_total) / count(*) from marts.fact_orders where is_revenue_order and is_in_analysis_window"}
+
+  - name: Freight Share of GMV % (proxy)
+    table: fact_orders
+    folder: Profitability proxies
+    format: "0.00%"
+    kpi: P1
+    description: Freight / GMV. A cost-structure proxy, not a margin (no product cost data).
+    expression: |
+      DIVIDE (
+          CALCULATE (
+              SUM ( fact_orders[freight_total] ),
+              fact_orders[is_revenue_order] = TRUE (),
+              fact_orders[is_in_analysis_window] = TRUE ()
+          ),
+          [GMV (BRL)]
+      )
+    target: {sql: "select freight_share_of_gmv from marts.kpi_overview", tolerance: 0.000001}
+
+  - name: Avg Review Score
+    table: fact_orders
+    folder: Operations
+    format: "0.00"
+    kpi: O6
+    description: Mean per-order review score (selected review, BR-06), orders in the window.
+    expression: CALCULATE ( AVERAGE ( fact_orders[review_score] ), fact_orders[is_in_analysis_window] = TRUE () )
+    target: {sql: "select avg(review_score) from marts.fact_orders where is_in_analysis_window"}
+
+  - name: Reviewed Orders
+    table: fact_orders
+    folder: Operations
+    format: "#,0"
+    kpi: O6
+    description: Orders in the window with a review score.
+    expression: CALCULATE ( COUNT ( fact_orders[review_score] ), fact_orders[is_in_analysis_window] = TRUE () )
+    target: {sql: "select sum(orders) from marts.kpi_review_distribution"}
+
+  # ------------------------------------------------------------------ Payments
+  - name: Payment Value (BRL)
+    table: fact_payments
+    folder: Payments
+    format: "#,0.00"
+    kpi: S8
+    description: Σ payment_value of revenue orders in the window (separate from GMV, BR-04).
+    expression: |
+      CALCULATE (
+          SUM ( fact_payments[payment_value] ),
+          fact_payments[is_revenue_order] = TRUE (),
+          fact_payments[is_in_analysis_window] = TRUE ()
+      )
+    target: {sql: "select sum(payment_value) from marts.kpi_payment_mix"}
+
+  - name: Avg Installments
+    table: fact_payments
+    folder: Payments
+    format: "0.00"
+    kpi: S8
+    description: Mean installments per payment line, revenue orders in the window.
+    expression: |
+      CALCULATE (
+          AVERAGE ( fact_payments[payment_installments] ),
+          fact_payments[is_revenue_order] = TRUE (),
+          fact_payments[is_in_analysis_window] = TRUE ()
+      )
+    target: {sql: "select avg(payment_installments) from marts.fact_payments where is_revenue_order and is_in_analysis_window", tolerance: 0.0001}
+
+  # ------------------------------------------------------------------ Regional check
+  - name: GMV São Paulo check
+    table: fact_orders
+    folder: _Checks
+    format: "#,0.00"
+    kpi: S6
+    description: Regional slice check (customer state at order time = SP). Hidden helper for reconciliation.
+    hidden: true
+    expression: CALCULATE ( [GMV (BRL)], fact_orders[customer_state_at_order] = "SP" )
+    target: {sql: "select gmv from marts.kpi_sales_by_state where state = 'SP'"}
