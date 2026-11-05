@@ -167,6 +167,23 @@ def test_session_survives_reload_and_logout_ends_it(page, make_user):
     assert js_errors == [], js_errors
 
 
+def test_transient_refresh_failure_does_not_end_the_session(page, make_user):
+    """A 429 on /auth/refresh (rate limit) must not discard the still-valid refresh token."""
+    login(page, make_user("viewer"))
+
+    def rate_limited(route):
+        route.fulfill(status=429, content_type="application/json", body='{"code":"x"}')
+
+    page.route("**/api/auth/refresh", rate_limited)
+    page.reload()
+    page.wait_for_url(f"{WEB}/login")  # no session for now
+    page.unroute("**/api/auth/refresh")
+    page.goto(f"{WEB}/")
+    page.get_by_role("button", name="Log out").wait_for()  # restored with the kept token
+    js_errors = [e for e in page.console_errors if "429" not in e and "401" not in e]
+    assert js_errors == [], js_errors
+
+
 def test_analyst_opens_customer_360(page, make_user):
     login(page, make_user("analyst"))
     page.goto(f"{WEB}/customers")
