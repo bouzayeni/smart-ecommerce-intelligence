@@ -118,6 +118,7 @@ jobs:
         with:
           scan-type: image
           image-ref: sei-api:ci
+          scanners: vuln  # repository secrets are scanned by gitleaks
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
@@ -126,6 +127,7 @@ jobs:
         with:
           scan-type: image
           image-ref: sei-web:ci
+          scanners: vuln  # repository secrets are scanned by gitleaks
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"

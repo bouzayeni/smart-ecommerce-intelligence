@@ -12,8 +12,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.11-slim-bookworm AS runtime
 # libgomp: OpenMP runtime needed by xgboost/scikit-learn wheels.
+# The app runs from /opt/venv. The base image's own pip/setuptools/wheel are unused and carry
+# vendored packages with known CVEs (Trivy), so they are removed from the runtime image.
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
     && rm -rf /var/lib/apt/lists/* \
+    && python -m pip uninstall -y pip setuptools wheel \
     && useradd --system --uid 10001 --home-dir /app --shell /usr/sbin/nologin app
 ENV PATH=/opt/venv/bin:$PATH PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
     ENVIRONMENT=production
