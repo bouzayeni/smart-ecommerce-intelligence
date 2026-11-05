@@ -38,8 +38,10 @@ def sha256_of(path: Path) -> str:
 
 
 def download(url: str, dest: Path) -> None:
+    if not url.startswith("https://"):  # no file:// or other schemes
+        raise ValueError(f"Refusing non-HTTPS download URL: {url}")
     request = urllib.request.Request(url, headers={"User-Agent": "smart-ecommerce-intelligence"})
-    with urllib.request.urlopen(request, timeout=120) as response, dest.open("wb") as fh:
+    with urllib.request.urlopen(request, timeout=120) as response, dest.open("wb") as fh:  # nosec B310
         shutil.copyfileobj(response, fh, length=1 << 20)
 
 

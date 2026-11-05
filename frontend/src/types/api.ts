@@ -256,7 +256,7 @@ export interface ModelMetrics {
 }
 
 export interface ModelStatus {
-  registry: { name: string; latest_version: string; created_at: number; run_id: string; status: string }[];
+  registry: { name: string; latest_version: string; serving_version: string; serving_source: string; created_at: number; run_id: string; status: string }[];
   tables: { table: string; rows: number; updated_at: string | null }[];
 }
 
