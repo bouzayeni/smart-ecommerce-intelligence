@@ -1,0 +1,578 @@
+table fact_orders
+	lineageTag: 28a1331a-9632-5b25-bf7c-73b19312a680
+
+	/// Σ(price + freight) of revenue orders in the analysis window.
+	measure 'GMV (BRL)' = ```
+			CALCULATE (
+			    SUM ( fact_orders[gmv] ),
+			    fact_orders[is_revenue_order] = TRUE (),
+			    fact_orders[is_in_analysis_window] = TRUE ()
+			)
+			```
+		formatString: #,0.00
+		displayFolder: Sales
+		lineageTag: b04356b7-c7e1-5882-9a92-58c04de1f9a9
+
+	/// Orders with a revenue status in the analysis window.
+	measure 'Revenue Orders' = ```
+			CALCULATE (
+			    COUNTROWS ( fact_orders ),
+			    fact_orders[is_revenue_order] = TRUE (),
+			    fact_orders[is_in_analysis_window] = TRUE ()
+			)
+			```
+		formatString: #,0
+		displayFolder: Sales
+		lineageTag: f64e0b7f-9ef1-5a7e-9235-c7b725f72414
+
+	/// GMV / revenue orders.
+	measure 'Average Order Value (BRL)' = DIVIDE ( [GMV (BRL)], [Revenue Orders] )
+		formatString: #,0.00
+		displayFolder: Sales
+		lineageTag: f1f998c7-602b-5198-afae-c27b3c018d03
+
+	/// Σ price (GMV without freight).
+	measure 'Merchandise Value (BRL)' = ```
+			CALCULATE (
+			    SUM ( fact_orders[price_total] ),
+			    fact_orders[is_revenue_order] = TRUE (),
+			    fact_orders[is_in_analysis_window] = TRUE ()
+			)
+			```
+		formatString: #,0.00
+		displayFolder: Sales
+		lineageTag: 8e3b1ee7-6a2f-5250-b37c-1b223df79858
+
+	/// GMV of the previous calendar month (time intelligence on dim_date).
+	measure 'GMV Previous Month (BRL)' = CALCULATE ( [GMV (BRL)], DATEADD ( dim_date[date_day], -1, MONTH ) )
+		formatString: #,0.00
+		displayFolder: Sales
+		lineageTag: bfa7e664-e06d-5e94-9de1-36f45e7486b7
+
+	/// Month-over-month GMV growth; blank unless one month is selected and both it and the previous month are complete (Aug 2018 is partial).
+	measure 'GMV MoM Growth %' = ```
+			VAR IsOneMonth = HASONEVALUE ( dim_date[year_month] )
+			VAR CurrentComplete = SELECTEDVALUE ( dim_date[is_complete_month_in_window] )
+			VAR PreviousComplete =
+			    CALCULATE (
+			        SELECTEDVALUE ( dim_date[is_complete_month_in_window] ),
+			        DATEADD ( dim_date[date_day], -1, MONTH )
+			    )
+			VAR Previous = [GMV Previous Month (BRL)]
+			RETURN
+			    IF (
+			        IsOneMonth && CurrentComplete = TRUE () && PreviousComplete = TRUE (),
+			        DIVIDE ( [GMV (BRL)] - Previous, Previous )
+			    )
+			```
+		formatString: 0.00%
+		displayFolder: Sales
+		lineageTag: 29f6df9d-2c1f-5540-b0a6-4d07179c6496
+
+	/// Distinct customer_unique_id with at least one revenue order in context.
+	measure Customers = ```
+			CALCULATE (
+			    DISTINCTCOUNT ( fact_orders[customer_unique_id] ),
+			    fact_orders[is_revenue_order] = TRUE (),
+			    fact_orders[is_in_analysis_window] = TRUE ()
+			)
+			```
+		formatString: #,0
+		displayFolder: Customers
+		lineageTag: c2572030-211a-534b-884a-90fd0693ab3f
+
+	/// Customers with 2+ revenue orders within the current filter context.
+	measure 'Repeat Customers' = ```
+			VAR CustomerOrders =
+			    CALCULATETABLE (
+			        ADDCOLUMNS (
+			            VALUES ( fact_orders[customer_unique_id] ),
+			            "@orders", CALCULATE ( COUNTROWS ( fact_orders ) )
+			        ),
+			        fact_orders[is_revenue_order] = TRUE (),
+			        fact_orders[is_in_analysis_window] = TRUE ()
+			    )
+			RETURN
+			    COUNTROWS ( FILTER ( CustomerOrders, [@orders] >= 2 ) )
+			```
+		formatString: #,0
+		displayFolder: Customers
+		lineageTag: 334ecdd1-925f-5e40-8f48-227480d87fd6
+
+	/// Repeat customers / customers.
+	measure 'Repeat Purchase Rate %' = DIVIDE ( [Repeat Customers], [Customers] )
+		formatString: 0.00%
+		displayFolder: Customers
+		lineageTag: 51fb0888-94ba-55d5-9b7e-b67beb212e14
+
+	/// Revenue orders / customers.
+	measure 'Avg Orders per Customer' = DIVIDE ( [Revenue Orders], [Customers] )
+		formatString: 0.0000
+		displayFolder: Customers
+		lineageTag: 0a00e506-75fa-58fc-bca9-0c722c9fae7d
+
+	/// Share of GMV from the top 10% of customers by GMV (ties at the boundary can add customers).
+	measure 'Top 10% Customers GMV Share %' = ```
+			VAR TopCount = ROUNDUP ( [Customers] * 0.1, 0 )
+			VAR CustomerGmv =
+			    CALCULATETABLE (
+			        ADDCOLUMNS ( VALUES ( fact_orders[customer_unique_id] ), "@gmv", [GMV (BRL)] ),
+			        fact_orders[is_revenue_order] = TRUE (),
+			        fact_orders[is_in_analysis_window] = TRUE ()
+			    )
+			VAR TopCustomers = TOPN ( TopCount, CustomerGmv, [@gmv], DESC )
+			RETURN
+			    DIVIDE ( SUMX ( TopCustomers, [@gmv] ), [GMV (BRL)] )
+			```
+		formatString: 0.00%
+		displayFolder: Customers
+		lineageTag: 5f7e6ae4-58ca-5d05-8f38-36fb88661de0
+
+	/// Population for delivery KPIs (BR-07).
+	measure 'Delivery-Eligible Orders' = ```
+			CALCULATE (
+			    COUNTROWS ( fact_orders ),
+			    fact_orders[is_delivery_kpi_eligible] = TRUE (),
+			    fact_orders[is_in_analysis_window] = TRUE ()
+			)
+			```
+		formatString: #,0
+		displayFolder: Operations
+		lineageTag: 6e827823-82ac-57d9-8c1f-f1d17e6b84ed
+
+	/// Mean purchase-to-delivery time in days, eligible orders.
+	measure 'Avg Delivery Days' = ```
+			CALCULATE (
+			    AVERAGE ( fact_orders[delivery_days] ),
+			    fact_orders[is_delivery_kpi_eligible] = TRUE (),
+			    fact_orders[is_in_analysis_window] = TRUE ()
+			)
+			```
+		formatString: 0.00
+		displayFolder: Operations
+		lineageTag: 99c9b6f7-df6e-590e-8c4c-6d2c0446b8b6
+
+	/// Median purchase-to-delivery time in days, eligible orders.
+	measure 'Median Delivery Days' = ```
+			CALCULATE (
+			    MEDIAN ( fact_orders[delivery_days] ),
+			    fact_orders[is_delivery_kpi_eligible] = TRUE (),
+			    fact_orders[is_in_analysis_window] = TRUE ()
+			)
+			```
+		formatString: 0.00
+		displayFolder: Operations
+		lineageTag: 09faef41-e95c-5ed4-8808-7df32c346627
+
+	/// Eligible orders delivered after the estimated date / eligible orders.
+	measure 'Late Delivery Rate %' = ```
+			DIVIDE (
+			    CALCULATE (
+			        COUNTROWS ( fact_orders ),
+			        fact_orders[is_delivery_kpi_eligible] = TRUE (),
+			        fact_orders[is_in_analysis_window] = TRUE (),
+			        fact_orders[is_late] = TRUE ()
+			    ),
+			    [Delivery-Eligible Orders]
+			)
+			```
+		formatString: 0.00%
+		displayFolder: Operations
+		lineageTag: 89076a8d-2ca7-5b76-b5f6-6c5249339d3e
+
+	/// 1 − late delivery rate (blank without eligible orders).
+	measure 'On-Time Delivery Rate %' = IF ( NOT ISBLANK ( [Delivery-Eligible Orders] ), 1 - [Late Delivery Rate %] )
+		formatString: 0.00%
+		displayFolder: Operations
+		lineageTag: 9253468f-3634-5058-8143-74f3b78bdcd1
+
+	/// Orders of any status purchased in the analysis window.
+	measure 'All Orders' = CALCULATE ( COUNTROWS ( fact_orders ), fact_orders[is_in_analysis_window] = TRUE () )
+		formatString: #,0
+		displayFolder: Operations
+		lineageTag: b51ff92a-2339-59df-b5d6-ff78693fceec
+
+	/// Orders with status canceled or unavailable / all orders (status at extract time).
+	measure 'Cancellation Rate %' = ```
+			DIVIDE (
+			    CALCULATE (
+			        COUNTROWS ( fact_orders ),
+			        fact_orders[is_in_analysis_window] = TRUE (),
+			        fact_orders[order_status] IN { "canceled", "unavailable" }
+			    ),
+			    [All Orders]
+			)
+			```
+		formatString: 0.00%
+		displayFolder: Operations
+		lineageTag: e3843740-48ec-54c4-80f2-6d385bccd1d9
+
+	/// Σ freight / revenue orders.
+	measure 'Avg Freight per Order (BRL)' = ```
+			DIVIDE (
+			    CALCULATE (
+			        SUM ( fact_orders[freight_total] ),
+			        fact_orders[is_revenue_order] = TRUE (),
+			        fact_orders[is_in_analysis_window] = TRUE ()
+			    ),
+			    [Revenue Orders]
+			)
+			```
+		formatString: #,0.00
+		displayFolder: Operations
+		lineageTag: 3cd82f66-45a5-5ae0-8de2-d73573df498a
+
+	/// Freight / GMV. A cost-structure proxy, not a margin (no product cost data).
+	measure 'Freight Share of GMV % (proxy)' = ```
+			DIVIDE (
+			    CALCULATE (
+			        SUM ( fact_orders[freight_total] ),
+			        fact_orders[is_revenue_order] = TRUE (),
+			        fact_orders[is_in_analysis_window] = TRUE ()
+			    ),
+			    [GMV (BRL)]
+			)
+			```
+		formatString: 0.00%
+		displayFolder: Profitability proxies
+		lineageTag: 660db87d-cc5a-5f4f-9806-a1c7c01c94b0
+
+	/// Mean per-order review score (selected review, BR-06), orders in the window.
+	measure 'Avg Review Score' = CALCULATE ( AVERAGE ( fact_orders[review_score] ), fact_orders[is_in_analysis_window] = TRUE () )
+		formatString: 0.00
+		displayFolder: Operations
+		lineageTag: 5e2da3fc-b8f6-5d2f-be7e-2d65ba72ce9e
+
+	/// Orders in the window with a review score.
+	measure 'Reviewed Orders' = CALCULATE ( COUNT ( fact_orders[review_score] ), fact_orders[is_in_analysis_window] = TRUE () )
+		formatString: #,0
+		displayFolder: Operations
+		lineageTag: ef415f2b-46fb-59f3-9127-8c2905b020b4
+
+	/// Regional slice check (customer state at order time = SP). Hidden helper for reconciliation.
+	measure 'GMV São Paulo check' = CALCULATE ( [GMV (BRL)], fact_orders[customer_state_at_order] = "SP" )
+		formatString: #,0.00
+		displayFolder: _Checks
+		isHidden
+		lineageTag: 80768664-25b0-568b-a860-21f6c3e00ff4
+
+	column order_id
+		dataType: string
+		lineageTag: 293fe5e2-2627-5786-8842-4d7da609a3a5
+		summarizeBy: none
+		sourceColumn: order_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_unique_id
+		dataType: string
+		lineageTag: 65862b60-56be-5eac-b000-603d83105456
+		summarizeBy: none
+		sourceColumn: customer_unique_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_id
+		dataType: string
+		lineageTag: 007a1bca-5af5-5d6f-9733-00ed5ba4830f
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column purchase_date_key
+		dataType: int64
+		formatString: 0
+		isHidden
+		lineageTag: 6852f975-0a12-5c6f-901e-f90b1a5aaf16
+		summarizeBy: none
+		sourceColumn: purchase_date_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column order_status
+		dataType: string
+		lineageTag: 255905d5-6256-5ff6-adc7-4da66aa457d9
+		summarizeBy: none
+		sourceColumn: order_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column purchased_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 10f31ef8-c3a2-55cd-b514-3d76c89e9bae
+		summarizeBy: none
+		sourceColumn: purchased_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column approved_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 12148992-a602-523a-b8b2-cf6e1ee43d92
+		summarizeBy: none
+		sourceColumn: approved_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column delivered_to_carrier_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: a37ddb97-827b-502c-aff2-0d1e724dc569
+		summarizeBy: none
+		sourceColumn: delivered_to_carrier_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column delivered_to_customer_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 2aad6e64-883d-5849-bcf8-7fc7accf04bc
+		summarizeBy: none
+		sourceColumn: delivered_to_customer_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column estimated_delivery_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: ebd0d4da-438c-50e8-a6be-adf09e0fe392
+		summarizeBy: none
+		sourceColumn: estimated_delivery_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_zip_code_prefix_at_order
+		dataType: string
+		lineageTag: c1f8d9c9-4c86-5fce-919f-ba25caad648f
+		summarizeBy: none
+		sourceColumn: customer_zip_code_prefix_at_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_city_at_order
+		dataType: string
+		lineageTag: 69f0bc00-658d-54a8-bb8c-35152e4836fe
+		summarizeBy: none
+		sourceColumn: customer_city_at_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_state_at_order
+		dataType: string
+		lineageTag: 35955392-588d-58bc-b616-014005984d21
+		summarizeBy: none
+		sourceColumn: customer_state_at_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column item_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 78d6355a-dcde-5b92-b457-a746dcc07b24
+		summarizeBy: none
+		sourceColumn: item_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column distinct_sellers
+		dataType: int64
+		formatString: 0
+		lineageTag: bcabe9f6-fb11-5cce-9b93-2808aa716641
+		summarizeBy: none
+		sourceColumn: distinct_sellers
+
+		annotation SummarizationSetBy = Automatic
+
+	column price_total
+		dataType: double
+		lineageTag: 29bdf646-53d9-5e01-a733-0a9283bdb5c7
+		summarizeBy: none
+		sourceColumn: price_total
+
+		annotation SummarizationSetBy = Automatic
+
+	column freight_total
+		dataType: double
+		lineageTag: 9472d084-f922-5e17-b022-11e7e09e0a26
+		summarizeBy: none
+		sourceColumn: freight_total
+
+		annotation SummarizationSetBy = Automatic
+
+	column gmv
+		dataType: double
+		lineageTag: dd7e9293-1965-5402-a9b8-4ed50ec4964f
+		summarizeBy: none
+		sourceColumn: gmv
+
+		annotation SummarizationSetBy = Automatic
+
+	column payment_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 7a5d6ffb-5dd4-5f93-a852-6b107195feae
+		summarizeBy: none
+		sourceColumn: payment_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column payment_total
+		dataType: double
+		lineageTag: b65499f5-74cf-5d54-bfe9-a877ae00ad52
+		summarizeBy: none
+		sourceColumn: payment_total
+
+		annotation SummarizationSetBy = Automatic
+
+	column max_installments
+		dataType: int64
+		formatString: 0
+		lineageTag: 9701fc78-f038-5fc3-8a70-f2b3dbe350b7
+		summarizeBy: none
+		sourceColumn: max_installments
+
+		annotation SummarizationSetBy = Automatic
+
+	column primary_payment_type
+		dataType: string
+		lineageTag: fb9a7d29-595d-5a6c-9a5e-d8cc444df9ec
+		summarizeBy: none
+		sourceColumn: primary_payment_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column review_score
+		dataType: int64
+		formatString: 0
+		lineageTag: 07ad66b4-e60f-5981-a721-c3d8963c9d27
+		summarizeBy: none
+		sourceColumn: review_score
+
+		annotation SummarizationSetBy = Automatic
+
+	column review_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 3558548b-7610-5654-9acc-88f41b588302
+		summarizeBy: none
+		sourceColumn: review_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column delivery_days
+		dataType: double
+		lineageTag: 0a12cdf5-27b5-5044-8897-3cec80b1d0d4
+		summarizeBy: none
+		sourceColumn: delivery_days
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_late
+		dataType: boolean
+		lineageTag: 2314c0a6-ef1a-5790-8a2d-d73569f64d7a
+		summarizeBy: none
+		sourceColumn: is_late
+
+		annotation SummarizationSetBy = Automatic
+
+	column estimated_lead_days
+		dataType: int64
+		formatString: 0
+		lineageTag: 820dc226-299b-54a8-9b26-e6db3c39affc
+		summarizeBy: none
+		sourceColumn: estimated_lead_days
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_revenue_order
+		dataType: boolean
+		lineageTag: d11dd10a-444e-53dd-846f-36aeaf0280be
+		summarizeBy: none
+		sourceColumn: is_revenue_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_in_analysis_window
+		dataType: boolean
+		lineageTag: f9ba5e44-93d4-55a1-825f-3a7862d49cd5
+		summarizeBy: none
+		sourceColumn: is_in_analysis_window
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_delivery_kpi_eligible
+		dataType: boolean
+		lineageTag: e468f97b-2e2c-560c-b004-7cb1b93a3f31
+		summarizeBy: none
+		sourceColumn: is_delivery_kpi_eligible
+
+		annotation SummarizationSetBy = Automatic
+
+	column has_items
+		dataType: boolean
+		lineageTag: 5ac4194e-01be-531a-a6f5-745d59ae3918
+		summarizeBy: none
+		sourceColumn: has_items
+
+		annotation SummarizationSetBy = Automatic
+
+	column has_payment
+		dataType: boolean
+		lineageTag: 5505e826-0f95-557f-a6ca-4b50b9dd273e
+		summarizeBy: none
+		sourceColumn: has_payment
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_payment_reconciled
+		dataType: boolean
+		lineageTag: 254906f6-561b-5898-86e5-4571f1e071d5
+		summarizeBy: none
+		sourceColumn: is_payment_reconciled
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_delivered_without_date
+		dataType: boolean
+		lineageTag: 6114a804-a94f-5267-9f0a-ba1649ed8332
+		summarizeBy: none
+		sourceColumn: is_delivered_without_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_undelivered_with_date
+		dataType: boolean
+		lineageTag: 39c7861f-fd69-5cfd-bc7e-0ff25f3ae8b2
+		summarizeBy: none
+		sourceColumn: is_undelivered_with_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_carrier_before_purchase
+		dataType: boolean
+		lineageTag: 03ab7dc1-2472-50c1-8bba-b5016bea20bd
+		summarizeBy: none
+		sourceColumn: is_carrier_before_purchase
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_delivery_before_carrier
+		dataType: boolean
+		lineageTag: d1fe84e0-7aea-5f88-b74a-ea89ffd047a1
+		summarizeBy: none
+		sourceColumn: is_delivery_before_carrier
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_orders = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(PostgresServer, PostgresDatabase),
+				    Data = Source{[Schema="marts", Item="fact_orders"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

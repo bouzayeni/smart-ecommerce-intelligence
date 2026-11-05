@@ -1,0 +1,333 @@
+{
+  "generated_at": "2026-11-05T11:44:11+00:00",
+  "targets": [
+    {
+      "check": "GMV (BRL)",
+      "kind": "measure",
+      "dax": "[GMV (BRL)]",
+      "expected": 15595580.13,
+      "tolerance": 0.005,
+      "sql": "select gmv from marts.kpi_overview"
+    },
+    {
+      "check": "Revenue Orders",
+      "kind": "measure",
+      "dax": "[Revenue Orders]",
+      "expected": 97222.0,
+      "tolerance": 0.005,
+      "sql": "select revenue_orders from marts.kpi_overview"
+    },
+    {
+      "check": "Average Order Value (BRL)",
+      "kind": "measure",
+      "dax": "[Average Order Value (BRL)]",
+      "expected": 160.41204799325254,
+      "tolerance": 0.005,
+      "sql": "select sum(gmv) / count(*) from marts.fact_orders where is_revenue_order and is_in_analysis_window"
+    },
+    {
+      "check": "Merchandise Value (BRL)",
+      "kind": "measure",
+      "dax": "[Merchandise Value (BRL)]",
+      "expected": 13373379.99,
+      "tolerance": 0.005,
+      "sql": "select merchandise_value from marts.kpi_overview"
+    },
+    {
+      "check": "GMV Previous Month (BRL)  [dim_date[year_month] = \"2018-07\"]",
+      "kind": "measure",
+      "dax": "CALCULATE ( [GMV Previous Month (BRL)], dim_date[year_month] = \"2018-07\" )",
+      "expected": 1020381.9,
+      "tolerance": 0.005,
+      "sql": "select gmv from marts.kpi_monthly_sales where year_month = '2018-06'"
+    },
+    {
+      "check": "GMV MoM Growth %  [dim_date[year_month] = \"2018-07\"]",
+      "kind": "measure",
+      "dax": "CALCULATE ( [GMV MoM Growth %], dim_date[year_month] = \"2018-07\" )",
+      "expected": 0.019014,
+      "tolerance": 0.005,
+      "sql": "select gmv_mom_growth from marts.kpi_monthly_sales where year_month = '2018-07'"
+    },
+    {
+      "check": "Item GMV (BRL)",
+      "kind": "measure",
+      "dax": "[Item GMV (BRL)]",
+      "expected": 15595580.13,
+      "tolerance": 0.005,
+      "sql": "select gmv from marts.kpi_overview"
+    },
+    {
+      "check": "Units Sold",
+      "kind": "measure",
+      "dax": "[Units Sold]",
+      "expected": 110970.0,
+      "tolerance": 0.005,
+      "sql": "select sum(units_sold) from marts.kpi_sales_by_category"
+    },
+    {
+      "check": "Category Share of GMV %  [dim_products[category_name] = \"health_beauty\"]",
+      "kind": "measure",
+      "dax": "CALCULATE ( [Category Share of GMV %], dim_products[category_name] = \"health_beauty\" )",
+      "expected": 0.090874,
+      "tolerance": 0.005,
+      "sql": "select share_of_gmv from marts.kpi_sales_by_category where category_name = 'health_beauty'"
+    },
+    {
+      "check": "Product GMV Rank  [dim_products[product_id] = \"6cdd53843498f92890544667809f1595\"]",
+      "kind": "measure",
+      "dax": "CALCULATE ( [Product GMV Rank], dim_products[product_id] = \"6cdd53843498f92890544667809f1595\" )",
+      "expected": 3.0,
+      "tolerance": 0.005,
+      "sql": "select gmv_rank from marts.kpi_product_ranking where product_id = '6cdd53843498f92890544667809f1595'"
+    },
+    {
+      "check": "Customers",
+      "kind": "measure",
+      "dax": "[Customers]",
+      "expected": 94046.0,
+      "tolerance": 0.005,
+      "sql": "select customers from marts.kpi_overview"
+    },
+    {
+      "check": "Repeat Customers",
+      "kind": "measure",
+      "dax": "[Repeat Customers]",
+      "expected": 2852.0,
+      "tolerance": 0.005,
+      "sql": "select repeat_customers from marts.kpi_overview"
+    },
+    {
+      "check": "Repeat Purchase Rate %",
+      "kind": "measure",
+      "dax": "[Repeat Purchase Rate %]",
+      "expected": 0.030326,
+      "tolerance": 0.005,
+      "sql": "select repeat_purchase_rate from marts.kpi_overview"
+    },
+    {
+      "check": "Avg Orders per Customer",
+      "kind": "measure",
+      "dax": "[Avg Orders per Customer]",
+      "expected": 1.0338,
+      "tolerance": 0.005,
+      "sql": "select avg_orders_per_customer from marts.kpi_overview"
+    },
+    {
+      "check": "Top 10% Customers GMV Share %",
+      "kind": "measure",
+      "dax": "[Top 10% Customers GMV Share %]",
+      "expected": 0.382952,
+      "tolerance": 0.001,
+      "sql": "select share_of_gmv from marts.kpi_customer_concentration where gmv_decile = 1"
+    },
+    {
+      "check": "Delivery-Eligible Orders",
+      "kind": "measure",
+      "dax": "[Delivery-Eligible Orders]",
+      "expected": 87525.0,
+      "tolerance": 0.005,
+      "sql": "select delivery_eligible_orders from marts.kpi_overview"
+    },
+    {
+      "check": "Avg Delivery Days",
+      "kind": "measure",
+      "dax": "[Avg Delivery Days]",
+      "expected": 13.003,
+      "tolerance": 0.0001,
+      "sql": "select avg_delivery_days from marts.kpi_overview"
+    },
+    {
+      "check": "Median Delivery Days",
+      "kind": "measure",
+      "dax": "[Median Delivery Days]",
+      "expected": 10.802,
+      "tolerance": 0.0001,
+      "sql": "select median_delivery_days from marts.kpi_overview"
+    },
+    {
+      "check": "Late Delivery Rate %",
+      "kind": "measure",
+      "dax": "[Late Delivery Rate %]",
+      "expected": 0.069077,
+      "tolerance": 0.005,
+      "sql": "select late_delivery_rate from marts.kpi_overview"
+    },
+    {
+      "check": "On-Time Delivery Rate %",
+      "kind": "measure",
+      "dax": "[On-Time Delivery Rate %]",
+      "expected": 0.930923,
+      "tolerance": 0.005,
+      "sql": "select on_time_delivery_rate from marts.kpi_overview"
+    },
+    {
+      "check": "All Orders",
+      "kind": "measure",
+      "dax": "[All Orders]",
+      "expected": 98390.0,
+      "tolerance": 0.005,
+      "sql": "select all_orders from marts.kpi_overview"
+    },
+    {
+      "check": "Cancellation Rate %",
+      "kind": "measure",
+      "dax": "[Cancellation Rate %]",
+      "expected": 0.01182,
+      "tolerance": 0.005,
+      "sql": "select cancellation_rate from marts.kpi_overview"
+    },
+    {
+      "check": "Avg Freight per Order (BRL)",
+      "kind": "measure",
+      "dax": "[Avg Freight per Order (BRL)]",
+      "expected": 22.856967970212505,
+      "tolerance": 0.005,
+      "sql": "select sum(freight_total) / count(*) from marts.fact_orders where is_revenue_order and is_in_analysis_window"
+    },
+    {
+      "check": "Freight Share of GMV % (proxy)",
+      "kind": "measure",
+      "dax": "[Freight Share of GMV % (proxy)]",
+      "expected": 0.142489,
+      "tolerance": 1e-06,
+      "sql": "select freight_share_of_gmv from marts.kpi_overview"
+    },
+    {
+      "check": "Avg Review Score",
+      "kind": "measure",
+      "dax": "[Avg Review Score]",
+      "expected": 4.086746765817534,
+      "tolerance": 0.005,
+      "sql": "select avg(review_score) from marts.fact_orders where is_in_analysis_window"
+    },
+    {
+      "check": "Reviewed Orders",
+      "kind": "measure",
+      "dax": "[Reviewed Orders]",
+      "expected": 97629.0,
+      "tolerance": 0.005,
+      "sql": "select sum(orders) from marts.kpi_review_distribution"
+    },
+    {
+      "check": "Payment Value (BRL)",
+      "kind": "measure",
+      "dax": "[Payment Value (BRL)]",
+      "expected": 15598394.49,
+      "tolerance": 0.005,
+      "sql": "select sum(payment_value) from marts.kpi_payment_mix"
+    },
+    {
+      "check": "Avg Installments",
+      "kind": "measure",
+      "dax": "[Avg Installments]",
+      "expected": 2.853896295712795,
+      "tolerance": 0.0001,
+      "sql": "select avg(payment_installments) from marts.fact_payments where is_revenue_order and is_in_analysis_window"
+    },
+    {
+      "check": "GMV S\u00e3o Paulo check",
+      "kind": "measure",
+      "dax": "[GMV S\u00e3o Paulo check]",
+      "expected": 5805208.81,
+      "tolerance": 0.005,
+      "sql": "select gmv from marts.kpi_sales_by_state where state = 'SP'"
+    },
+    {
+      "check": "row count dim_date",
+      "kind": "rowcount",
+      "dax": "COUNTROWS ( dim_date )",
+      "expected": 1096.0,
+      "tolerance": 0,
+      "sql": "select count(*) from marts.dim_date"
+    },
+    {
+      "check": "row count dim_customers",
+      "kind": "rowcount",
+      "dax": "COUNTROWS ( dim_customers )",
+      "expected": 96096.0,
+      "tolerance": 0,
+      "sql": "select count(*) from marts.dim_customers"
+    },
+    {
+      "check": "row count dim_products",
+      "kind": "rowcount",
+      "dax": "COUNTROWS ( dim_products )",
+      "expected": 32951.0,
+      "tolerance": 0,
+      "sql": "select count(*) from marts.dim_products"
+    },
+    {
+      "check": "row count dim_sellers",
+      "kind": "rowcount",
+      "dax": "COUNTROWS ( dim_sellers )",
+      "expected": 3095.0,
+      "tolerance": 0,
+      "sql": "select count(*) from marts.dim_sellers"
+    },
+    {
+      "check": "row count dim_payment_type",
+      "kind": "rowcount",
+      "dax": "COUNTROWS ( dim_payment_type )",
+      "expected": 5.0,
+      "tolerance": 0,
+      "sql": "select count(*) from marts.dim_payment_type"
+    },
+    {
+      "check": "row count dim_geolocation",
+      "kind": "rowcount",
+      "dax": "COUNTROWS ( dim_geolocation )",
+      "expected": 19010.0,
+      "tolerance": 0,
+      "sql": "select count(*) from marts.dim_geolocation"
+    },
+    {
+      "check": "row count fact_orders",
+      "kind": "rowcount",
+      "dax": "COUNTROWS ( fact_orders )",
+      "expected": 99441.0,
+      "tolerance": 0,
+      "sql": "select count(*) from marts.fact_orders"
+    },
+    {
+      "check": "row count fact_order_items",
+      "kind": "rowcount",
+      "dax": "COUNTROWS ( fact_order_items )",
+      "expected": 112650.0,
+      "tolerance": 0,
+      "sql": "select count(*) from marts.fact_order_items"
+    },
+    {
+      "check": "row count fact_payments",
+      "kind": "rowcount",
+      "dax": "COUNTROWS ( fact_payments )",
+      "expected": 103886.0,
+      "tolerance": 0,
+      "sql": "select count(*) from marts.fact_payments"
+    },
+    {
+      "check": "row count fact_reviews",
+      "kind": "rowcount",
+      "dax": "COUNTROWS ( fact_reviews )",
+      "expected": 99224.0,
+      "tolerance": 0,
+      "sql": "select count(*) from marts.fact_reviews"
+    },
+    {
+      "check": "row count kpi_customer_cohorts",
+      "kind": "rowcount",
+      "dax": "COUNTROWS ( kpi_customer_cohorts )",
+      "expected": 206.0,
+      "tolerance": 0,
+      "sql": "select count(*) from marts.kpi_customer_cohorts"
+    },
+    {
+      "check": "row count kpi_customer_concentration",
+      "kind": "rowcount",
+      "dax": "COUNTROWS ( kpi_customer_concentration )",
+      "expected": 10.0,
+      "tolerance": 0,
+      "sql": "select count(*) from marts.kpi_customer_concentration"
+    }
+  ]
+}

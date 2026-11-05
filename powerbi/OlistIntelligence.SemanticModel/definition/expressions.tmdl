@@ -1,0 +1,9 @@
+expression PostgresServer = "localhost:5432" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 9a4dfc1a-e00e-598f-b638-1cc0b7a00930
+
+	annotation PBI_ResultType = Text
+
+expression PostgresDatabase = "olist_dw" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: c4f630b8-0350-5a5e-9222-6eef901edfa9
+
+	annotation PBI_ResultType = Text

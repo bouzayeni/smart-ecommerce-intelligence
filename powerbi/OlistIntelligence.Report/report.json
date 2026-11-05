@@ -1,0 +1,62 @@
+{
+  "config": "{\"version\": \"5.43\", \"activeSectionIndex\": 0}",
+  "layoutOptimization": 0,
+  "resourcePackages": [],
+  "sections": [
+    {
+      "config": "{}",
+      "displayName": "Executive Overview",
+      "displayOption": 1,
+      "filters": "[]",
+      "height": 720,
+      "name": "page00",
+      "ordinal": 0,
+      "visualContainers": [],
+      "width": 1280
+    },
+    {
+      "config": "{}",
+      "displayName": "Sales Performance",
+      "displayOption": 1,
+      "filters": "[]",
+      "height": 720,
+      "name": "page01",
+      "ordinal": 1,
+      "visualContainers": [],
+      "width": 1280
+    },
+    {
+      "config": "{}",
+      "displayName": "Customer Analytics",
+      "displayOption": 1,
+      "filters": "[]",
+      "height": 720,
+      "name": "page02",
+      "ordinal": 2,
+      "visualContainers": [],
+      "width": 1280
+    },
+    {
+      "config": "{}",
+      "displayName": "Product Analytics",
+      "displayOption": 1,
+      "filters": "[]",
+      "height": 720,
+      "name": "page03",
+      "ordinal": 3,
+      "visualContainers": [],
+      "width": 1280
+    },
+    {
+      "config": "{}",
+      "displayName": "Logistics & Operations",
+      "displayOption": 1,
+      "filters": "[]",
+      "height": 720,
+      "name": "page04",
+      "ordinal": 4,
+      "visualContainers": [],
+      "width": 1280
+    }
+  ]
+}

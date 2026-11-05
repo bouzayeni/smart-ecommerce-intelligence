@@ -19,7 +19,7 @@ permission-controlled AI business assistant.
 | 2 | Data exploration and quality assessment | Done — [business rules](docs/business_rules.md), [quality report](docs/data_quality_report.md), [notebook](notebooks/exploration/01_exploratory_analysis.ipynb) |
 | 3 | ETL and PostgreSQL warehouse | Bronze done — [ETL docs](docs/etl_bronze.md); silver/gold are built by dbt in Phase 4 |
 | 4 | dbt transformations and tests | Done — [star schema](docs/star_schema.md) |
-| 5 | SQL analytics and Power BI | Not started |
+| 5 | SQL analytics and Power BI | Done — [KPI dictionary](docs/kpi_dictionary.md), [Power BI](powerbi/documentation/report_spec.md); DAX value check pending a refresh in Desktop |
 | 6 | RFM, repurchase propensity and CLV | Not started |
 | 7 | Sales forecasting and anomaly detection | Not started |
 | 8 | Recommendations | Not started |
@@ -100,7 +100,11 @@ uv run python -m data_engineering.etl.load_bronze
 uv sync --group dbt
 uv run --group dbt python -m data_engineering.scripts.run_dbt build
 
-# 7. Git hooks (ruff, large-file guard, private-key detection)
+# 7. Power BI model (TMDL) + SQL reconciliation targets; then open powerbi/OlistIntelligence.pbip,
+#    refresh with analytics_ro, and run: powershell -File powerbi	ools\Invoke-DaxChecks.ps1
+uv run python -m data_engineering.scripts.build_powerbi_model
+
+# 8. Git hooks (ruff, large-file guard, private-key detection)
 uv run pre-commit install
 ```
 

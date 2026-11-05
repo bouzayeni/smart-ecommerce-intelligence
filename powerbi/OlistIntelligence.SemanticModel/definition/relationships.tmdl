@@ -1,0 +1,52 @@
+relationship 2fc1685c-af7e-580b-86fe-3c0871105f6a
+	fromColumn: fact_orders.customer_unique_id
+	toColumn: dim_customers.customer_unique_id
+
+relationship 87ded9bd-36d4-5073-9d37-2b4e3d9308c5
+	fromColumn: fact_orders.purchase_date_key
+	toColumn: dim_date.date_key
+
+relationship 12b8ecd7-1158-5310-8a84-bfbcd2c8888e
+	isActive: false
+	fromColumn: fact_orders.primary_payment_type
+	toColumn: dim_payment_type.payment_type
+
+relationship 2694b64c-c2c3-5a8a-8920-d2f830037314
+	fromColumn: fact_order_items.product_id
+	toColumn: dim_products.product_id
+
+relationship f26347a9-4148-5195-8db5-4592d43bb94e
+	fromColumn: fact_order_items.seller_id
+	toColumn: dim_sellers.seller_id
+
+relationship 667908ff-8241-54e4-a99d-ed004e5ccb43
+	fromColumn: fact_order_items.customer_unique_id
+	toColumn: dim_customers.customer_unique_id
+
+relationship 79a5f333-d7ec-5980-bc8a-8ae5cb79cb2e
+	fromColumn: fact_order_items.purchase_date_key
+	toColumn: dim_date.date_key
+
+relationship dc681c97-6761-559e-93d1-ca238dd5732f
+	fromColumn: fact_payments.payment_type
+	toColumn: dim_payment_type.payment_type
+
+relationship dde77f24-58a5-5f70-9d6e-14c76596f8fd
+	fromColumn: fact_payments.customer_unique_id
+	toColumn: dim_customers.customer_unique_id
+
+relationship 6489295d-4097-55b5-abeb-4d84181fd863
+	fromColumn: fact_payments.purchase_date_key
+	toColumn: dim_date.date_key
+
+relationship fbc829c5-2bfe-5062-aa21-dc99bf479b93
+	fromColumn: fact_reviews.customer_unique_id
+	toColumn: dim_customers.customer_unique_id
+
+relationship 6989f3b2-99a7-5a24-a283-a6202a0f35a4
+	fromColumn: fact_reviews.review_created_date_key
+	toColumn: dim_date.date_key
+
+relationship c8ecbd77-7abc-5547-9b55-c6e7f04ddbc0
+	fromColumn: dim_customers.customer_zip_code_prefix
+	toColumn: dim_geolocation.zip_code_prefix

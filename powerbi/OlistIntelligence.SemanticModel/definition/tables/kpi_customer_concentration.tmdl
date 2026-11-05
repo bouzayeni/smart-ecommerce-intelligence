@@ -1,0 +1,71 @@
+table kpi_customer_concentration
+	lineageTag: 392dc122-3db7-509d-9282-966b6dae67c6
+
+	column gmv_decile
+		dataType: int64
+		formatString: 0
+		lineageTag: 50649ff8-6c92-5d31-ba4d-19dfc1ef82dd
+		summarizeBy: none
+		sourceColumn: gmv_decile
+
+		annotation SummarizationSetBy = Automatic
+
+	column customers
+		dataType: int64
+		formatString: 0
+		lineageTag: b947e40b-5df1-565d-b7f0-e68fb765f523
+		summarizeBy: none
+		sourceColumn: customers
+
+		annotation SummarizationSetBy = Automatic
+
+	column gmv
+		dataType: double
+		lineageTag: 7f718bbf-9894-5baf-a2f0-5a11b2b76882
+		summarizeBy: none
+		sourceColumn: gmv
+
+		annotation SummarizationSetBy = Automatic
+
+	column share_of_gmv
+		dataType: double
+		lineageTag: b66ef3a4-d56a-52cd-86c2-81bf9eee3db5
+		summarizeBy: none
+		sourceColumn: share_of_gmv
+
+		annotation SummarizationSetBy = Automatic
+
+	column cumulative_share_of_gmv
+		dataType: double
+		lineageTag: 3343ef84-662f-5a23-aa09-373c749a3a2f
+		summarizeBy: none
+		sourceColumn: cumulative_share_of_gmv
+
+		annotation SummarizationSetBy = Automatic
+
+	column min_customer_gmv
+		dataType: double
+		lineageTag: 6fde6ad7-e366-5750-bf7a-a0b6d8fb7144
+		summarizeBy: none
+		sourceColumn: min_customer_gmv
+
+		annotation SummarizationSetBy = Automatic
+
+	column max_customer_gmv
+		dataType: double
+		lineageTag: b65043a3-5164-56f4-be77-2558ef8f59fa
+		summarizeBy: none
+		sourceColumn: max_customer_gmv
+
+		annotation SummarizationSetBy = Automatic
+
+	partition kpi_customer_concentration = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(PostgresServer, PostgresDatabase),
+				    Data = Source{[Schema="marts", Item="kpi_customer_concentration"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table
