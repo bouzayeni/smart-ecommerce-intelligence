@@ -1,0 +1,103 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: One row per customer_id (a per-order key). Person = customer_unique_id (BR-01).
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'customers')"}}
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]
+      - name: customer_unique_id
+        data_tests: [not_null]
+
+  - name: stg_orders
+    description: One row per order, typed, with row-level quality flags.
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'orders')"}}
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('stg_customers'), field: customer_id}}
+      - name: order_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [delivered, shipped, canceled, unavailable, invoiced, processing, created, approved]
+      - name: purchased_at
+        data_tests: [not_null]
+
+  - name: stg_order_items
+    description: One row per unit sold (order_id, order_item_id). gmv = price + freight_value.
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'order_items')"}}
+      - unique: {arguments: {column_name: "order_id || '-' || order_item_id"}}
+    columns:
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('stg_orders'), field: order_id}}
+      - name: product_id
+        data_tests:
+          - relationships: {arguments: {to: ref('stg_products'), field: product_id}}
+      - name: seller_id
+        data_tests:
+          - relationships: {arguments: {to: ref('stg_sellers'), field: seller_id}}
+      - name: price
+        data_tests:
+          - not_null
+
+  - name: stg_order_payments
+    description: One row per (order_id, payment_sequential); not_defined mapped to unknown.
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'order_payments')"}}
+      - unique: {arguments: {column_name: "order_id || '-' || payment_sequential"}}
+    columns:
+      - name: order_id
+        data_tests:
+          - relationships: {arguments: {to: ref('stg_orders'), field: order_id}}
+      - name: payment_type
+        data_tests:
+          - relationships: {arguments: {to: ref('payment_types'), field: payment_type}}
+
+  - name: stg_order_reviews
+    description: One row per (review_id, order_id). See BR-06 for shared review_ids.
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'order_reviews')"}}
+      - unique: {arguments: {column_name: "review_id || '-' || order_id"}}
+    columns:
+      - name: order_id
+        data_tests:
+          - relationships: {arguments: {to: ref('stg_orders'), field: order_id}}
+      - name: review_score
+        data_tests:
+          - accepted_values: {arguments: {values: [1, 2, 3, 4, 5], quote: false}}
+
+  - name: stg_products
+    description: One row per product; typo columns renamed; zero weight set to NULL.
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'products')"}}
+    columns:
+      - name: product_id
+        data_tests: [unique, not_null]
+
+  - name: stg_sellers
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'sellers')"}}
+    columns:
+      - name: seller_id
+        data_tests: [unique, not_null]
+
+  - name: stg_geolocation
+    description: One row per source point; points outside Brazil flagged, not removed.
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'geolocation')"}}
+
+  - name: stg_category_translation
+    description: Source translations plus project-provided labels (is_project_provided).
+    columns:
+      - name: product_category_name
+        data_tests: [unique, not_null]

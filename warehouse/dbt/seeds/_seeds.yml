@@ -1,0 +1,37 @@
+version: 2
+
+seeds:
+  - name: category_translation_extra
+    description: >
+      English labels for the two categories missing from product_category_name_translation.csv
+      (project-provided; mirrors products.extra_translations in config/business_rules.yaml).
+    config:
+      column_types: {product_category_name: text, product_category_name_english: text}
+    columns:
+      - name: product_category_name
+        data_tests: [unique, not_null]
+
+  - name: payment_types
+    description: Payment types after mapping source 'not_defined' to 'unknown'.
+    config:
+      column_types: {payment_type: text, payment_type_label: text, is_card: boolean}
+    columns:
+      - name: payment_type
+        data_tests: [unique, not_null]
+
+  - name: br_holidays
+    description: >
+      Brazilian national holidays 2016-2018. Movable dates derived from Easter (2016-03-27,
+      2017-04-16, 2018-04-01): Carnaval = Easter-48/-47 days, Good Friday = Easter-2,
+      Corpus Christi = Easter+60. 'optional' = federal ponto facultativo, widely observed.
+      State and municipal holidays are not included.
+    config:
+      column_types: {holiday_date: date, holiday_name: text, holiday_type: text}
+    columns:
+      - name: holiday_date
+        data_tests: [unique, not_null]
+      - name: holiday_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [national, optional]

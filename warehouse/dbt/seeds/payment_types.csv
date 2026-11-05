@@ -1,0 +1,6 @@
+payment_type,payment_type_label,is_card
+credit_card,Credit card,true
+debit_card,Debit card,true
+boleto,Boleto bancário,false
+voucher,Voucher,false
+unknown,Unknown (source: not_defined),false

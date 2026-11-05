@@ -1,0 +1,48 @@
+name: olist_warehouse
+version: "1.0.0"
+config-version: 2
+profile: olist_warehouse
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+analysis-paths: ["analyses"]
+target-path: target
+clean-targets: [target, dbt_packages, logs]
+
+vars:
+  # Bronze schema to read from (tests point this at an isolated schema).
+  raw_schema: raw
+  # --- Mirrors config/business_rules.yaml; tests/test_dbt_project.py keeps them in sync. ---
+  analysis_start: "2017-01-01"
+  analysis_end: "2018-08-21"
+  revenue_statuses: [delivered, shipped, invoiced, processing, approved]
+  payment_reconciliation_tolerance_brl: 0.01
+  payment_type_map: {not_defined: unknown}
+  delivery_cohort_maturity_days: 30
+  shipping_limit_max_days_after_purchase: 60
+  brazil_bbox: {lat_min: -34.0, lat_max: 5.5, lng_min: -74.0, lng_max: -34.0}
+  unknown_category: unknown
+  # --- dbt-only settings ---
+  incremental_lookback_days: 7
+  dim_date_start: "2016-01-01"
+  dim_date_end: "2018-12-31"
+
+models:
+  olist_warehouse:
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: table
+    marts:
+      +schema: marts
+      +materialized: table
+      +grants:
+        select: [analytics_reader]
+
+seeds:
+  olist_warehouse:
+    +schema: staging
