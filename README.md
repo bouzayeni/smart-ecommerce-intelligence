@@ -24,7 +24,7 @@ permission-controlled AI business assistant.
 | 7 | Sales forecasting and anomaly detection | Done — model cards: [forecasting](docs/model_cards/sales_forecasting.md), [anomalies](docs/model_cards/anomaly_detection.md) |
 | 8 | Recommendations | Done — [model card](docs/model_cards/recommendations.md) |
 | 9 | FastAPI backend | Done — [API docs](docs/api.md) |
-| 10 | React frontend | Not started |
+| 10 | React frontend | Done — [frontend docs](docs/frontend.md) |
 | 11 | AI business assistant | Not started |
 | 12 | MLflow, Docker, CI/CD, security | Not started |
 | 13 | Integration and end-to-end tests | Not started |
@@ -57,7 +57,7 @@ CI workflow lives there rather than in `infrastructure/github-actions/`.
 |---|---|---|
 | [uv](https://docs.astral.sh/uv/) | 0.5+ | Python 3.11 toolchain, virtualenv, lockfile |
 | Docker Desktop (WSL2 backend on Windows) | recent | PostgreSQL and, later, the full stack |
-| Node.js | 20 LTS or newer | Frontend (Phase 10) |
+| Node.js | ^20.19 or >=22.12 | Frontend |
 | Git | 2.30+ | |
 
 Python is pinned to **3.11** (`.python-version`) because TensorFlow and Prophet, needed in
@@ -132,7 +132,10 @@ uv run --all-groups alembic -c backend/alembic.ini upgrade head
 uv run --all-groups python backend/scripts/create_admin.py --email you@example.com --name "You"
 uv run --all-groups uvicorn app.main:app --app-dir backend --reload
 
-# 12. Git hooks (ruff, large-file guard, private-key detection)
+# 12. Web app (Node ^20.19 || >=22.12): http://localhost:5173, proxies /api to :8000
+cd frontend && npm ci && npm run dev
+
+# 13. Git hooks (ruff, large-file guard, private-key detection)
 uv run pre-commit install
 ```
 
