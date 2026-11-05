@@ -1,0 +1,59 @@
+# Sales forecasting and anomaly detection (Phase 7). Rationale: docs/model_cards/*.md.
+# Series: marts.agg_daily_sales (analysis window, zero-order days included).
+# Never shuffled: every split is chronological; scalers/models fit on data before the origin.
+
+random_state: 42
+target: gmv                  # daily GMV of revenue orders (BRL)
+horizons: [30, 60, 90]       # evaluation windows, in days after the origin
+max_horizon: 90
+
+backtest:
+  # Rolling origins: train on data <= origin, forecast the next max_horizon days.
+  # Every backtest window ends before the test origin.
+  origins: [2017-10-01, 2017-12-01, 2018-02-01]
+test_origin: 2018-05-23       # last 90 days of the window are the untouched test period
+# The final forecast refits on the whole window and predicts the days after it.
+
+metrics:
+  mape_min_actual_brl: 1000   # MAPE only on days with actual GMV >= this (avoids /~0)
+  interval_level: 0.8         # central prediction interval reported and evaluated
+
+models:
+  seasonal_naive: {season: 7}
+  sarima:
+    order_grid: [[1, 1, 1], [2, 1, 1], [1, 1, 2]]
+    seasonal_order: [1, 0, 1, 7]
+  prophet:
+    weekly_seasonality: true
+    yearly_seasonality: false   # ~20 months of data: one year cannot be estimated reliably
+    changepoint_prior_scale: 0.05
+  xgboost:
+    lags: [7, 14, 21, 28]
+    rolling_windows: [7, 28]
+    n_estimators: 400
+    max_depth: 4
+    learning_rate: 0.05
+  lstm:
+    lookback: 56
+    units: 32
+    epochs: 200
+    batch_size: 16
+    patience: 20
+    validation_fraction: 0.15   # last part of the training period (chronological)
+
+anomalies:
+  metrics: [gmv, revenue_orders, freight_per_item, cancellation_rate]
+  stl_period: 7
+  # STL trend window (odd, days). The default (~11 days for period 7) absorbed the
+  # ~10-day level drop of late May 2018 into the trend, so it was never flagged.
+  stl_trend_days: 29
+  # Ratio metrics (cancellation rate, freight per item) are undefined below this daily
+  # volume: in the Jan 2017 ramp-up (~25 orders/day) one cancellation moved the rate by 4pp.
+  min_orders_for_ratios: 50
+  robust_z_threshold: 3.5      # baseline rule on STL residuals (median/MAD z-score)
+  # Sustained level shifts (e.g. a week of depressed sales): Isolation Forest scores days
+  # independently and misses moderate-but-persistent deviations. Flag when the rolling mean
+  # of residual z over `window` days exceeds |z| for GMV or order volume.
+  sustained_shift: {metrics: [gmv, revenue_orders], window: 7, z_threshold: 3.0}
+  isolation_forest: {n_estimators: 300, contamination: 0.02}
+  autoencoder: {window: 7, encoding_dim: 4, epochs: 150, quantile: 0.98}

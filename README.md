@@ -21,7 +21,7 @@ permission-controlled AI business assistant.
 | 4 | dbt transformations and tests | Done — [star schema](docs/star_schema.md) |
 | 5 | SQL analytics and Power BI | Done — [KPI dictionary](docs/kpi_dictionary.md), [Power BI](powerbi/documentation/report_spec.md); DAX value check pending a refresh in Desktop |
 | 6 | RFM, repurchase propensity and CLV | Done — model cards: [repurchase](docs/model_cards/repurchase_propensity.md), [90-day spend](docs/model_cards/customer_spend_90d.md), [RFM](docs/model_cards/rfm_segmentation.md) |
-| 7 | Sales forecasting and anomaly detection | Not started |
+| 7 | Sales forecasting and anomaly detection | Done — model cards: [forecasting](docs/model_cards/sales_forecasting.md), [anomalies](docs/model_cards/anomaly_detection.md) |
 | 8 | Recommendations | Not started |
 | 9 | FastAPI backend | Not started |
 | 10 | React frontend | Not started |
@@ -64,11 +64,22 @@ Python is pinned to **3.11** (`.python-version`) because TensorFlow and Prophet,
 Phase 7, do not reliably support newer interpreters. uv installs 3.11 without affecting any
 system Python.
 
+**Low disk space on the system drive?** Everything large can live on another drive. The
+development machine uses `K:`, set up as follows:
+
+| What | Size | How |
+|---|---|---|
+| Virtualenv (all groups, incl. TensorFlow) | ~2.9 GB | user env var `UV_PROJECT_ENVIRONMENT=K:\...\venv` (`uv run` / `uv sync` use it) |
+| uv package cache | grows | user env vars `UV_CACHE_DIR=K:\...\uv-cache`, `UV_LINK_MODE=copy` (no cross-drive hardlinks) |
+| Warehouse database | ~0.6 GB, grows | PostgreSQL tablespace: `CREATE TABLESPACE olist_k LOCATION 'K:/...'` then `ALTER DATABASE olist_dw SET TABLESPACE olist_k` (the folder must grant the service account, `NetworkService`, full control) |
+| PostgreSQL WAL | capped | `ALTER SYSTEM SET max_wal_size = '256MB'` on a small dev machine |
+
 ## Setup
 
 ```bash
-# 1. Python environment (creates .venv from uv.lock)
-uv sync
+# 1. Python environment from uv.lock (.venv, or $UV_PROJECT_ENVIRONMENT if set).
+#    Groups: dev (default), notebooks, dbt, ml, dl (TensorFlow, Prophet, statsmodels)
+uv sync --all-groups
 
 # 2. Secrets: copy the template and replace every "change-me" value
 cp .env.example .env
@@ -109,7 +120,11 @@ uv sync --group ml
 uv run --group ml python -m ml.train_customer_models
 uv run --group ml mlflow ui --backend-store-uri sqlite:///mlflow/mlflow.db   # browse runs
 
-# 9. Git hooks (ruff, large-file guard, private-key detection)
+# 9. Sales forecasting (30/60/90 days) and daily anomaly detection
+uv run --all-groups python -m ml.train_forecasting
+uv run --all-groups python -m ml.detect_anomalies
+
+# 10. Git hooks (ruff, large-file guard, private-key detection)
 uv run pre-commit install
 ```
 
