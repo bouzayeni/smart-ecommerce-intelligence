@@ -34,18 +34,32 @@ class Settings(BaseSettings):
     def sample_dir(self) -> Path:
         return self.data_dir / "sample"
 
-    def database_url(self, role: str = "etl") -> URL:
-        """SQLAlchemy URL for a given role ("etl" or "analytics").
-
-        URL.create escapes special characters in passwords, unlike string formatting.
-        """
+    def _credentials(self, role: str) -> tuple[str, SecretStr]:
         users = {
             "etl": (self.etl_db_user, self.etl_db_password),
             "analytics": (self.analytics_db_user, self.analytics_db_password),
         }
         if role not in users:
             raise ValueError(f"Unknown database role {role!r}; expected one of {sorted(users)}")
-        user, password = users[role]
+        return users[role]
+
+    def psycopg_kwargs(self, role: str = "etl") -> dict[str, str | int]:
+        """Keyword arguments for psycopg.connect (used where COPY is needed)."""
+        user, password = self._credentials(role)
+        return {
+            "host": self.postgres_host,
+            "port": self.postgres_port,
+            "dbname": self.postgres_db,
+            "user": user,
+            "password": password.get_secret_value(),
+        }
+
+    def database_url(self, role: str = "etl") -> URL:
+        """SQLAlchemy URL for a given role ("etl" or "analytics").
+
+        URL.create escapes special characters in passwords, unlike string formatting.
+        """
+        user, password = self._credentials(role)
         return URL.create(
             "postgresql+psycopg",
             username=user,

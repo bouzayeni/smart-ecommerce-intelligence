@@ -32,6 +32,9 @@ GRANT analytics_reader TO :"analytics_user", :"app_user";
 -- Lock down defaults
 REVOKE ALL ON DATABASE :"db" FROM PUBLIC;
 GRANT CONNECT ON DATABASE :"db" TO :"etl_user", :"analytics_user", :"app_user";
+-- The warehouse owner may create schemas (dbt custom schemas, isolated test schemas) and
+-- temporary tables (bronze COPY staging). REVOKE ALL above removed TEMP from PUBLIC.
+GRANT CREATE, TEMPORARY ON DATABASE :"db" TO :"etl_user";
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 
 -- Warehouse layers (owned by the ETL role, which also runs dbt and ML batch scoring)
