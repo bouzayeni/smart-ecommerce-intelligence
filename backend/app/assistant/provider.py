@@ -20,7 +20,7 @@ class ProviderUnavailableError(RuntimeError):
 
 
 class AnthropicProvider:
-    """Claude via the Anthropic SDK.
+    """LLM provider using the Anthropic SDK.
 
     - Server-side refusal fallback is enabled (`fallbacks: "default"`, beta
       server-side-fallback-2026-07-01): if a safety classifier declines, the API re-runs the

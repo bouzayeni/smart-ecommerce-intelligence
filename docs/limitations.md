@@ -33,7 +33,7 @@ preferred to re-selecting on the test set.
 | Limitation | Status |
 |---|---|
 | Docker images and the CI workflow have never run (no Docker on the development machine, no git remote) | [deployment.md](deployment.md) |
-| Live Claude answers not verified (no `ANTHROPIC_API_KEY` configured); tools-only mode is tested | [assistant.md](assistant.md#limitations) |
+| Live LLM answers not verified (no `ANTHROPIC_API_KEY` configured); tools-only mode is tested | [assistant.md](assistant.md#limitations) |
 | Power BI DAX values not yet checked in Desktop (the SQL reconciliation targets exist) | [report spec](../powerbi/documentation/report_spec.md) |
 | No TLS, no MFA or lockout, in-memory per-process rate limits, secrets from environment variables | [security.md](security.md#known-gaps) |
 | `/api/auth/refresh` shares the 10/minute auth limit, so more than 10 full page reloads in a minute end the session until the next minute | Found in Phase 14; the client now keeps the token on a 429, so a later reload restores the session (`test_transient_refresh_failure_does_not_end_the_session`) |

@@ -37,7 +37,7 @@ flowchart LR
         ASSIST[Assistant loop<br/>read-only tools, SQL guard]
     end
 
-    CLAUDE[[Claude API]]
+    LLM[[LLM API<br/>Anthropic]]
     PBI[Power BI<br/>PBIP / TMDL]
 
     K --> DQ --> ETL --> RAW --> DBT --> MARTS --> ML --> MLS
@@ -45,7 +45,7 @@ flowchart LR
     MARTS & MLS -- analytics_ro --> API
     APP <-- app_user --> API
     BUNDLE -- on-demand predictions --> API
-    API --- ASSIST -- tool calls --> CLAUDE
+    API --- ASSIST -- tool calls --> LLM
     WEB -- /api --> API
     MARTS & MLS -- analytics_ro --> PBI
 ```
@@ -58,7 +58,7 @@ flowchart LR
 | ML | scikit-learn, XGBoost, Prophet, statsmodels, TensorFlow, MLflow | Point-in-time training sets, baselines, confidence intervals, batch scoring into `ml.*`, model registry | [model cards](model_cards/) |
 | API | FastAPI, SQLAlchemy, Alembic, slowapi | Auth, RBAC, pagination, on-demand predictions, audit | [api.md](api.md) |
 | Frontend | React 19, React Router, Vite, Tailwind, Recharts | 14 pages, role-gated navigation | [frontend.md](frontend.md) |
-| Assistant | Anthropic SDK (Claude), sqlglot | Tool-grounded answers; tools-only mode without a key | [assistant.md](assistant.md) |
+| Assistant | Anthropic SDK (LLM), sqlglot | Tool-grounded answers; tools-only mode without a key | [assistant.md](assistant.md) |
 | Delivery | Docker, compose, GitHub Actions | Images, security scans, CI | [deployment.md](deployment.md), [security.md](security.md) |
 
 ## Database roles and schemas
@@ -102,7 +102,7 @@ sequenceDiagram
 sequenceDiagram
     participant U as User
     participant A as FastAPI
-    participant C as Claude
+    participant C as LLM
     participant D as PostgreSQL (analytics_ro)
     U->>A: POST /api/assistant/query
     A->>C: question + tools allowed for the user's role
