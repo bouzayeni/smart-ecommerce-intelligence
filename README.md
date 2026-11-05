@@ -20,7 +20,7 @@ permission-controlled AI business assistant.
 | 3 | ETL and PostgreSQL warehouse | Bronze done — [ETL docs](docs/etl_bronze.md); silver/gold are built by dbt in Phase 4 |
 | 4 | dbt transformations and tests | Done — [star schema](docs/star_schema.md) |
 | 5 | SQL analytics and Power BI | Done — [KPI dictionary](docs/kpi_dictionary.md), [Power BI](powerbi/documentation/report_spec.md); DAX value check pending a refresh in Desktop |
-| 6 | RFM, repurchase propensity and CLV | Not started |
+| 6 | RFM, repurchase propensity and CLV | Done — model cards: [repurchase](docs/model_cards/repurchase_propensity.md), [90-day spend](docs/model_cards/customer_spend_90d.md), [RFM](docs/model_cards/rfm_segmentation.md) |
 | 7 | Sales forecasting and anomaly detection | Not started |
 | 8 | Recommendations | Not started |
 | 9 | FastAPI backend | Not started |
@@ -104,7 +104,12 @@ uv run --group dbt python -m data_engineering.scripts.run_dbt build
 #    refresh with analytics_ro, and run: powershell -File powerbi	ools\Invoke-DaxChecks.ps1
 uv run python -m data_engineering.scripts.build_powerbi_model
 
-# 8. Git hooks (ruff, large-file guard, private-key detection)
+# 8. Customer models: RFM, repurchase propensity (churn), 90-day spend; MLflow in mlflow/
+uv sync --group ml
+uv run --group ml python -m ml.train_customer_models
+uv run --group ml mlflow ui --backend-store-uri sqlite:///mlflow/mlflow.db   # browse runs
+
+# 9. Git hooks (ruff, large-file guard, private-key detection)
 uv run pre-commit install
 ```
 
