@@ -1,6 +1,6 @@
 # React frontend served by unprivileged nginx, which also proxies /api to the backend.
 #   docker build -f infrastructure/docker/web/Dockerfile -t sei-web .
-FROM node:22-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /src
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
