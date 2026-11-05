@@ -72,8 +72,11 @@ async function doRefresh(): Promise<boolean> {
     const { data } = await axios.post<Tokens>("/api/auth/refresh", { refresh_token: token });
     tokens.set(data);
     return true;
-  } catch {
-    tokens.clear();
+  } catch (err) {
+    // Drop the token only when the API rejected it. A 429, a 5xx or a network failure is
+    // transient: keep the (still valid) token so the next reload can restore the session.
+    const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+    if (status !== undefined && status < 500 && status !== 429) tokens.clear();
     return false;
   }
 }

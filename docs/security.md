@@ -42,6 +42,16 @@ database credentials and the LLM API key.
   audit row before raising. Covered by
   `test_journeys.py::test_promotion_takes_effect_immediately_and_demotion_revokes_access`.
 
+## Fixed during documentation (Phase 14)
+
+- **A transient refresh failure logged the user out.** The client deleted the refresh token
+  on *any* `/api/auth/refresh` error. Because refresh shares the 10/minute auth rate limit,
+  more than 10 full page reloads in a minute returned a 429, and the user lost a still-valid
+  session. The client now drops the token only when the API rejects it (4xx other than 429).
+  Covered by `test_e2e_browser.py::test_transient_refresh_failure_does_not_end_the_session`,
+  which fails on the previous code. Remaining gap: the 429 still shows the login page until
+  the next reload; a separate refresh limit is listed in [limitations.md](limitations.md).
+
 ## Known gaps
 
 - **No TLS termination** in the compose stack. Ports are bound to localhost; a real deployment
