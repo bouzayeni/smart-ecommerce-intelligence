@@ -1,0 +1,50 @@
+# Business rules shared by the warehouse (dbt), KPIs and ML pipelines.
+# Rationale and evidence for every rule: docs/business_rules.md
+# Validated by data_engineering/business_rules.py (tests/test_business_rules.py).
+
+customer_key: customer_unique_id   # customer_id is a per-order key in Olist
+
+analysis_window:
+  # 2016 is sparse (324 orders in Oct, none in Nov, 1 in Dec), so the window starts in 2017.
+  start: 2017-01-01
+  # Pinned so every downstream phase uses the same window. Auto-detection (below) gives
+  # 2018-08-21 and is re-run in the quality report as a cross-check; null = use auto-detection.
+  end_override: 2018-08-21
+  truncation_detection:
+    min_ratio: 0.7          # a day is complete if orders >= ratio x trailing median
+    baseline_days: 28       # trailing window for that median (current day excluded)
+    min_baseline_orders: 10 # ignore stretches whose baseline is itself near zero
+
+revenue:
+  # GMV = sum(order_items.price + order_items.freight_value). Payments are a separate measure.
+  include_statuses: [delivered, shipped, invoiced, processing, approved]
+  exclude_statuses: [canceled, unavailable, created]
+
+payments:
+  reconciliation_tolerance_brl: 0.01
+  payment_type_map:
+    not_defined: unknown
+
+reviews:
+  # Some orders have several reviews; use the most recently answered one per order.
+  per_order_score: latest_answer
+  # A review is known to the business only once answered; ML features must respect this.
+  available_at: review_answer_timestamp
+
+delivery:
+  # order_estimated_delivery_date has no time part (midnight), so compare calendar dates.
+  late_comparison: calendar_date
+  # Purchase cohorts younger than this at window end are excluded from delivery KPIs,
+  # because orders still in transit at extract time are missing from them.
+  cohort_maturity_days: 30
+
+quality:
+  shipping_limit_max_days_after_purchase: 60
+  brazil_bbox: {lat_min: -34.0, lat_max: 5.5, lng_min: -74.0, lng_max: -34.0}
+
+products:
+  unknown_category: unknown
+  # Categories absent from product_category_name_translation.csv (project-provided labels).
+  extra_translations:
+    pc_gamer: pc_gamer
+    portateis_cozinha_e_preparadores_de_alimentos: kitchen_portables_and_food_preparers

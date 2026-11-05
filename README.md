@@ -16,7 +16,7 @@ permission-controlled AI business assistant.
 |---|---|---|
 | 0 | Requirements, dataset inspection, architecture | Done — see [docs/phase0_findings.md](docs/phase0_findings.md) |
 | 1 | Repository and development environment | Done |
-| 2 | Data exploration and quality assessment | Not started |
+| 2 | Data exploration and quality assessment | Done — [business rules](docs/business_rules.md), [quality report](docs/data_quality_report.md), [notebook](notebooks/exploration/01_exploratory_analysis.ipynb) |
 | 3 | ETL and PostgreSQL warehouse | Not started |
 | 4 | dbt transformations and tests | Not started |
 | 5 | SQL analytics and Power BI | Not started |
@@ -105,6 +105,14 @@ uv run pytest -m "not db"                              # what CI runs
 uv run ruff check . && uv run ruff format --check .    # lint
 uv run python -m data_engineering.scripts.profile_raw  # Phase 0 raw-data profile report
 uv run python -m data_engineering.scripts.make_sample  # regenerate data/sample from data/raw
+
+# Data quality: 79 checks; exits 1 if any error-level check fails
+uv run python -m data_engineering.scripts.assess_quality --write-report   # full data -> docs/data_quality_report.md
+uv run python -m data_engineering.scripts.assess_quality --raw-dir data/sample   # what CI runs
+
+# Exploration notebook (optional dependency group)
+uv sync --group notebooks
+uv run --group notebooks jupyter nbconvert --to notebook --execute --inplace notebooks/exploration/01_exploratory_analysis.ipynb
 ```
 
 ## Database roles
