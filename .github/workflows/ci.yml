@@ -21,3 +21,5 @@ jobs:
           uv run ruff format --check .
       - name: Unit tests and sample-fixture data checks
         run: uv run pytest -m "not db"
+      - name: Data quality checks on sample fixture
+        run: uv run python -m data_engineering.scripts.assess_quality --raw-dir data/sample

@@ -59,7 +59,9 @@ processing 301 · created 5 · approved 2
 - Σ freight = 2,251,909.54
 - Σ payment_value = 16,008,872.12
 
-Payments exceed item value plus freight. The difference is not yet explained; Phase 2 investigates it.
+Payments exceed item value plus freight. Phase 2 explains the difference fully; see BR-04 in
+[business_rules.md](business_rules.md#br-04-payments). Most of it (162,591.95 BRL) is payments on
+orders that have no items.
 
 ## Behavioral facts that shape the ML design
 
