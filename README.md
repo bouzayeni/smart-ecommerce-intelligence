@@ -23,7 +23,7 @@ permission-controlled AI business assistant.
 | 6 | RFM, repurchase propensity and CLV | Done — model cards: [repurchase](docs/model_cards/repurchase_propensity.md), [90-day spend](docs/model_cards/customer_spend_90d.md), [RFM](docs/model_cards/rfm_segmentation.md) |
 | 7 | Sales forecasting and anomaly detection | Done — model cards: [forecasting](docs/model_cards/sales_forecasting.md), [anomalies](docs/model_cards/anomaly_detection.md) |
 | 8 | Recommendations | Done — [model card](docs/model_cards/recommendations.md) |
-| 9 | FastAPI backend | Not started |
+| 9 | FastAPI backend | Done — [API docs](docs/api.md) |
 | 10 | React frontend | Not started |
 | 11 | AI business assistant | Not started |
 | 12 | MLflow, Docker, CI/CD, security | Not started |
@@ -127,7 +127,12 @@ uv run --all-groups python -m ml.detect_anomalies
 # 10. Product recommendations (temporal evaluation, serving tables in ml.*)
 uv run --all-groups python -m ml.train_recommendations
 
-# 11. Git hooks (ruff, large-file guard, private-key detection)
+# 11. API: migrate the app schema, create an admin, run (docs at /docs)
+uv run --all-groups alembic -c backend/alembic.ini upgrade head
+uv run --all-groups python backend/scripts/create_admin.py --email you@example.com --name "You"
+uv run --all-groups uvicorn app.main:app --app-dir backend --reload
+
+# 12. Git hooks (ruff, large-file guard, private-key detection)
 uv run pre-commit install
 ```
 
