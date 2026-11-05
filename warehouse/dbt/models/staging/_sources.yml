@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Bronze layer: untouched Olist CSVs loaded by data_engineering/etl/load_bronze.py.
+      All columns are text; see docs/etl_bronze.md.
+    schema: "{{ var('raw_schema') }}"
+    tables:
+      - name: customers
+      - name: orders
+      - name: order_items
+      - name: order_payments
+      - name: order_reviews
+      - name: products
+      - name: sellers
+      - name: geolocation
+      - name: category_translation

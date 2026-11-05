@@ -27,6 +27,7 @@ models/*
 warehouse/dbt/**/target/
 warehouse/dbt/**/dbt_packages/
 warehouse/dbt/**/logs/
+warehouse/dbt/.user.yml
 
 # Node
 node_modules/
