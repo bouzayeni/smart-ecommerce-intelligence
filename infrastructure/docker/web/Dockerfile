@@ -7,7 +7,7 @@ RUN npm ci --no-audit --no-fund
 COPY frontend ./
 RUN npm run build
 
-FROM nginxinc/nginx-unprivileged:1.27-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine
 COPY infrastructure/docker/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY infrastructure/docker/web/security-headers.inc /etc/nginx/conf.d/security-headers.inc
 COPY --from=build /src/dist /usr/share/nginx/html
