@@ -88,6 +88,10 @@ Mean |SHAP| of the uncalibrated model (log-odds space); top 10:
 | last_order_category_sports_leisure | 0.1024 |
 
 Per-customer top-3 drivers are stored in `ml.customer_repurchase_scores.top_reasons`.
+Caveat: several features are near-duplicates for one-order customers (monetary, max and last
+order value are equal), so a linear model can split their effect into offsetting signs
+("max order value lowers" next to "monetary raises"). Read the drivers as a group, not one
+by one.
 
 ## Intended use and limitations
 
