@@ -178,9 +178,17 @@ def main(argv: list[str] | None = None) -> int:
     settings = get_settings()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--raw-dir", type=Path, default=settings.raw_dir)
-    parser.add_argument("--out", type=Path, default=settings.data_dir / "processed" / "quality")
+    parser.add_argument("--out", type=Path, default=None,
+                        help="output dir (default: processed/quality for data/raw, "
+                             "processed/quality_<name> for any other input)")  # fmt: skip
     parser.add_argument("--write-report", action="store_true", help=f"write {REPORT_PATH.name}")
     args = parser.parse_args(argv)
+    if args.out is None:
+        # The API serves processed/quality: only the full extract may write there, so a check
+        # of the sample fixture can never be shown as production data quality.
+        is_main = args.raw_dir.resolve() == settings.raw_dir.resolve()
+        name = "quality" if is_main else f"quality_{args.raw_dir.resolve().name}"
+        args.out = settings.data_dir / "processed" / name
 
     rules = get_rules()
     raw = load_raw(args.raw_dir.resolve())
@@ -190,7 +198,8 @@ def main(argv: list[str] | None = None) -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     payload = {
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
-        "raw_dir": str(args.raw_dir),
+        "raw_dir": str(args.raw_dir.resolve()),
+        "dataset": "full extract" if args.out.name == "quality" else args.raw_dir.resolve().name,
         "checks": [r.to_dict() for r in results],
         "summary": summary,
     }

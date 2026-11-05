@@ -279,4 +279,7 @@ def data_quality(_: Admin):
         },
         "checks": checks,
         "window": payload["summary"]["window"],
+        # Which input the checks ran on (results from an older script may lack the field).
+        "dataset": payload.get("dataset", "unknown"),
+        "orders_checked": payload["summary"]["window"].get("orders_total"),
     }
