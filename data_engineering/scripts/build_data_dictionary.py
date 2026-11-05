@@ -13,6 +13,7 @@ from pathlib import Path
 
 import psycopg
 import yaml
+from psycopg import sql
 
 from data_engineering.config import PROJECT_ROOT, get_settings
 
@@ -85,6 +86,10 @@ def dbt_descriptions() -> tuple[dict[str, str], dict[tuple[str, str], str]]:
     return tables, columns
 
 
+def count_query(schema: str, table: str) -> sql.Composed:
+    return sql.SQL("select count(*) from {}").format(sql.Identifier(schema, table))
+
+
 def md_cell(text: str) -> str:
     return text.replace("|", "\\|")
 
@@ -132,11 +137,7 @@ def build(conn: psycopg.Connection) -> str:
         if table.startswith("_"):
             continue  # ingestion bookkeeping
         is_view = kind == "VIEW"
-        n = (
-            "view"
-            if is_view
-            else f"{conn.execute(f'select count(*) from {schema}.{table}').fetchone()[0]:,}"
-        )
+        n = "view" if is_view else f"{conn.execute(count_query(schema, table)).fetchone()[0]:,}"
         if schema == "ml":
             writer, desc = ML_TABLES.get(table, ("", ""))
             desc = f"{desc} (`{writer}`)" if writer else desc
