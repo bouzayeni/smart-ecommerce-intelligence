@@ -1,0 +1,295 @@
+version: 2
+
+# Star schema (docs/star_schema.md). Every dimension and fact has an enforced contract:
+# declared column types plus PRIMARY KEY / FOREIGN KEY constraints created in PostgreSQL.
+# Natural keys are used (Olist IDs are stable 32-char hashes), which keeps Power BI
+# relationships and API lookups simple.
+
+models:
+  # ---------------------------------------------------------------- dimensions
+  - name: dim_date
+    description: Calendar 2016-01-01..2018-12-31 with Brazilian holidays and window flags.
+    config:
+      contract: {enforced: true}
+    constraints:
+      - {type: primary_key, columns: [date_key]}
+    columns:
+      - {name: date_key, data_type: integer, description: "YYYYMMDD", constraints: [{type: not_null}]}
+      - {name: date_day, data_type: date, constraints: [{type: not_null}, {type: unique}]}
+      - {name: year, data_type: integer}
+      - {name: quarter, data_type: integer}
+      - {name: month, data_type: integer}
+      - {name: year_month, data_type: text}
+      - {name: month_name, data_type: text}
+      - {name: iso_week, data_type: integer}
+      - {name: iso_day_of_week, data_type: integer, description: "1 = Monday .. 7 = Sunday"}
+      - {name: day_name, data_type: text}
+      - {name: is_weekend, data_type: boolean}
+      - {name: is_holiday, data_type: boolean, description: "National or optional federal holiday (seed br_holidays)"}
+      - {name: holiday_name, data_type: text}
+      - {name: holiday_type, data_type: text}
+      - {name: is_black_friday, data_type: boolean}
+      - {name: is_in_analysis_window, data_type: boolean, description: "Inside the BR-02 analysis window"}
+      - {name: is_complete_month_in_window, data_type: boolean, description: "Whole month inside the window; false for Aug 2018 (partial)"}
+
+  - name: dim_geolocation
+    description: One row per zip prefix; median coordinates of points inside Brazil (BR-09).
+    config:
+      contract: {enforced: true}
+    constraints:
+      - {type: primary_key, columns: [zip_code_prefix]}
+    columns:
+      - {name: zip_code_prefix, data_type: text, constraints: [{type: not_null}]}
+      - {name: latitude, data_type: double precision}
+      - {name: longitude, data_type: double precision}
+      - {name: city, data_type: text}
+      - {name: state, data_type: text}
+      - {name: point_count, data_type: integer}
+      - {name: distinct_states, data_type: integer, description: "> 1 for the 8 prefixes spanning several states"}
+
+  - name: dim_customers
+    description: >
+      One row per person (customer_unique_id, BR-01). Location is from the most recent order;
+      order_count etc. describe the whole extract.
+    config:
+      contract: {enforced: true}
+      indexes:
+        - {columns: [customer_state]}
+    constraints:
+      - {type: primary_key, columns: [customer_unique_id]}
+    columns:
+      - {name: customer_unique_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: customer_zip_code_prefix, data_type: text}
+      - {name: customer_city, data_type: text}
+      - {name: customer_state, data_type: text}
+      - {name: latitude, data_type: double precision, description: "NULL when the zip prefix has no coordinates"}
+      - {name: longitude, data_type: double precision}
+      - {name: first_order_at, data_type: timestamp without time zone}
+      - {name: last_order_at, data_type: timestamp without time zone}
+      - {name: order_count, data_type: integer}
+      - {name: revenue_order_count, data_type: integer}
+      - {name: distinct_zip_prefixes, data_type: integer}
+      - {name: is_repeat_customer, data_type: boolean}
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: ref('int_customers_profile')}}
+
+  - name: dim_products
+    description: One row per product; English category with 'unknown' for missing (BR-08).
+    config:
+      contract: {enforced: true}
+      indexes:
+        - {columns: [category_name]}
+    constraints:
+      - {type: primary_key, columns: [product_id]}
+    columns:
+      - {name: product_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: category_name_pt, data_type: text}
+      - {name: category_name, data_type: text, constraints: [{type: not_null}]}
+      - {name: is_category_label_project_provided, data_type: boolean}
+      - {name: is_category_missing, data_type: boolean}
+      - {name: product_name_length, data_type: integer}
+      - {name: product_description_length, data_type: integer}
+      - {name: product_photos_qty, data_type: integer}
+      - {name: product_weight_g, data_type: integer, description: "NULL when source is 0 or missing"}
+      - {name: product_length_cm, data_type: integer}
+      - {name: product_height_cm, data_type: integer}
+      - {name: product_width_cm, data_type: integer}
+      - {name: product_volume_cm3, data_type: bigint}
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'products')"}}
+
+  - name: dim_sellers
+    config:
+      contract: {enforced: true}
+    constraints:
+      - {type: primary_key, columns: [seller_id]}
+    columns:
+      - {name: seller_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: seller_zip_code_prefix, data_type: text}
+      - {name: seller_city, data_type: text}
+      - {name: seller_state, data_type: text}
+      - {name: latitude, data_type: double precision}
+      - {name: longitude, data_type: double precision}
+
+  - name: dim_payment_type
+    config:
+      contract: {enforced: true}
+    constraints:
+      - {type: primary_key, columns: [payment_type]}
+    columns:
+      - {name: payment_type, data_type: text, constraints: [{type: not_null}]}
+      - {name: payment_type_label, data_type: text}
+      - {name: is_card, data_type: boolean}
+
+  # ---------------------------------------------------------------- facts
+  - name: fact_orders
+    description: >
+      Grain: one row per order (every source order and status). Measures are pre-aggregated
+      per order. KPIs filter on is_revenue_order and is_in_analysis_window.
+    config:
+      contract: {enforced: true}
+      indexes:
+        - {columns: [customer_unique_id]}
+        - {columns: [purchase_date_key]}
+        - {columns: [customer_state_at_order]}
+    constraints:
+      - {type: primary_key, columns: [order_id]}
+      - {type: foreign_key, columns: [customer_unique_id], to: ref('dim_customers'), to_columns: [customer_unique_id]}
+      - {type: foreign_key, columns: [purchase_date_key], to: ref('dim_date'), to_columns: [date_key]}
+      - {type: foreign_key, columns: [primary_payment_type], to: ref('dim_payment_type'), to_columns: [payment_type]}
+    columns:
+      - {name: order_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: customer_unique_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: customer_id, data_type: text, description: "Per-order source key (BR-01)"}
+      - {name: purchase_date_key, data_type: integer, constraints: [{type: not_null}]}
+      - name: order_status
+        data_type: text
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [delivered, shipped, canceled, unavailable, invoiced, processing, created, approved]
+      - {name: purchased_at, data_type: timestamp without time zone}
+      - {name: approved_at, data_type: timestamp without time zone}
+      - {name: delivered_to_carrier_at, data_type: timestamp without time zone}
+      - {name: delivered_to_customer_at, data_type: timestamp without time zone}
+      - {name: estimated_delivery_date, data_type: date}
+      - {name: customer_zip_code_prefix_at_order, data_type: text}
+      - {name: customer_city_at_order, data_type: text}
+      - {name: customer_state_at_order, data_type: text, description: "Use for regional KPIs (location at order time)"}
+      - {name: item_count, data_type: integer}
+      - {name: distinct_sellers, data_type: integer}
+      - {name: price_total, data_type: "numeric(14,2)"}
+      - {name: freight_total, data_type: "numeric(14,2)"}
+      - {name: gmv, data_type: "numeric(14,2)", description: "Σ(price + freight) of the order's items (BR-03). Not profit."}
+      - {name: payment_count, data_type: integer}
+      - {name: payment_total, data_type: "numeric(14,2)"}
+      - {name: max_installments, data_type: integer}
+      - {name: primary_payment_type, data_type: text}
+      - {name: review_score, data_type: integer, description: "Most recently answered review (BR-06)"}
+      - {name: review_count, data_type: integer}
+      - {name: delivery_days, data_type: "numeric(10,4)", description: "Purchase to customer delivery, in days"}
+      - {name: is_late, data_type: boolean, description: "Delivered calendar date > estimated date (BR-07)"}
+      - {name: estimated_lead_days, data_type: integer}
+      - {name: is_revenue_order, data_type: boolean, description: "Status counts toward GMV (BR-03)"}
+      - {name: is_in_analysis_window, data_type: boolean}
+      - {name: is_delivery_kpi_eligible, data_type: boolean, description: "Population for delivery KPIs (BR-07)"}
+      - {name: has_items, data_type: boolean}
+      - {name: has_payment, data_type: boolean}
+      - {name: is_payment_reconciled, data_type: boolean, description: "|payments - gmv| within tolerance; NULL if either side missing"}
+      - {name: is_delivered_without_date, data_type: boolean}
+      - {name: is_undelivered_with_date, data_type: boolean}
+      - {name: is_carrier_before_purchase, data_type: boolean}
+      - {name: is_delivery_before_carrier, data_type: boolean}
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'orders')"}}
+
+  - name: fact_order_items
+    description: "Grain: one row per unit sold (order_id, order_item_id)."
+    config:
+      contract: {enforced: true}
+      indexes:
+        - {columns: [product_id]}
+        - {columns: [seller_id]}
+        - {columns: [purchase_date_key]}
+    constraints:
+      - {type: primary_key, columns: [order_id, order_item_id]}
+      - {type: foreign_key, columns: [order_id], to: ref('fact_orders'), to_columns: [order_id]}
+      - {type: foreign_key, columns: [product_id], to: ref('dim_products'), to_columns: [product_id]}
+      - {type: foreign_key, columns: [seller_id], to: ref('dim_sellers'), to_columns: [seller_id]}
+      - {type: foreign_key, columns: [customer_unique_id], to: ref('dim_customers'), to_columns: [customer_unique_id]}
+      - {type: foreign_key, columns: [purchase_date_key], to: ref('dim_date'), to_columns: [date_key]}
+    columns:
+      - {name: order_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: order_item_id, data_type: integer, constraints: [{type: not_null}]}
+      - {name: product_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: seller_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: customer_unique_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: purchase_date_key, data_type: integer, constraints: [{type: not_null}]}
+      - {name: shipping_limit_at, data_type: timestamp without time zone}
+      - {name: price, data_type: "numeric(12,2)"}
+      - {name: freight_value, data_type: "numeric(12,2)"}
+      - name: gmv
+        data_type: "numeric(12,2)"
+        data_tests:
+          # Item-level GMV must equal order-level GMV: proves no double counting.
+          - sums_match: {arguments: {compare_to: ref('fact_orders'), compare_column: gmv}}
+      - {name: order_status, data_type: text}
+      - {name: is_revenue_order, data_type: boolean}
+      - {name: is_in_analysis_window, data_type: boolean}
+      - {name: is_shipping_limit_outlier, data_type: boolean}
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'order_items')"}}
+
+  - name: fact_payments
+    description: "Grain: one row per payment line (order_id, payment_sequential)."
+    config:
+      contract: {enforced: true}
+      indexes:
+        - {columns: [payment_type]}
+    constraints:
+      - {type: primary_key, columns: [order_id, payment_sequential]}
+      - {type: foreign_key, columns: [order_id], to: ref('fact_orders'), to_columns: [order_id]}
+      - {type: foreign_key, columns: [payment_type], to: ref('dim_payment_type'), to_columns: [payment_type]}
+      - {type: foreign_key, columns: [customer_unique_id], to: ref('dim_customers'), to_columns: [customer_unique_id]}
+      - {type: foreign_key, columns: [purchase_date_key], to: ref('dim_date'), to_columns: [date_key]}
+    columns:
+      - {name: order_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: payment_sequential, data_type: integer, constraints: [{type: not_null}]}
+      - {name: payment_type, data_type: text, constraints: [{type: not_null}]}
+      - {name: payment_type_source, data_type: text}
+      - {name: customer_unique_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: purchase_date_key, data_type: integer, constraints: [{type: not_null}]}
+      - {name: payment_installments, data_type: integer}
+      - name: payment_value
+        data_type: "numeric(12,2)"
+        data_tests:
+          - sums_match: {arguments: {compare_to: ref('fact_orders'), compare_column: payment_total}}
+      - {name: is_non_positive_value, data_type: boolean}
+      - {name: is_zero_installments, data_type: boolean}
+      - {name: order_status, data_type: text}
+      - {name: is_revenue_order, data_type: boolean}
+      - {name: is_in_analysis_window, data_type: boolean}
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'order_payments')"}}
+
+  - name: fact_reviews
+    description: >
+      Grain: one row per (review_id, order_id). Filter is_selected_for_order = true for one
+      score per order (BR-06).
+    config:
+      contract: {enforced: true}
+      indexes:
+        - {columns: [review_created_date_key]}
+    constraints:
+      - {type: primary_key, columns: [review_id, order_id]}
+      - {type: foreign_key, columns: [order_id], to: ref('fact_orders'), to_columns: [order_id]}
+      - {type: foreign_key, columns: [customer_unique_id], to: ref('dim_customers'), to_columns: [customer_unique_id]}
+      - {type: foreign_key, columns: [review_created_date_key], to: ref('dim_date'), to_columns: [date_key]}
+    columns:
+      - {name: review_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: order_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: customer_unique_id, data_type: text, constraints: [{type: not_null}]}
+      - {name: review_created_date_key, data_type: integer, constraints: [{type: not_null}]}
+      - {name: review_score, data_type: integer}
+      - {name: review_created_date, data_type: date}
+      - {name: review_answered_at, data_type: timestamp without time zone, description: "When the score became known (leakage cut-off, BR-06)"}
+      - {name: review_comment_title, data_type: text}
+      - {name: review_comment_message, data_type: text}
+      - {name: has_comment_message, data_type: boolean}
+      - {name: is_selected_for_order, data_type: boolean}
+      - {name: order_status, data_type: text}
+      - {name: is_order_late, data_type: boolean}
+      - {name: is_in_analysis_window, data_type: boolean}
+    data_tests:
+      - row_count_matches: {arguments: {compare_to: "source('raw', 'order_reviews')"}}
+
+  # ---------------------------------------------------------------- aggregates
+  - name: agg_daily_sales
+    description: >
+      Grain: one row per day of the analysis window (zero-order days included). Incremental
+      (delete+insert with a lookback window). Revenue measures use revenue statuses only.
+    columns:
+      - name: date_day
+        data_tests: [unique, not_null]
+      - name: gmv
+        description: "Σ gmv of revenue orders purchased that day"

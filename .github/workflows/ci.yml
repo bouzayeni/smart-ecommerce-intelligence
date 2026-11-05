@@ -23,3 +23,11 @@ jobs:
         run: uv run pytest -m "not db"
       - name: Data quality checks on sample fixture
         run: uv run python -m data_engineering.scripts.assess_quality --raw-dir data/sample
+      - name: dbt parse (compiles the project; no database needed)
+        env:
+          POSTGRES_DB: ci
+          ETL_DB_USER: ci
+          ETL_DB_PASSWORD: ci
+        run: |
+          uv sync --locked --group dbt
+          uv run --group dbt python -m data_engineering.scripts.run_dbt parse

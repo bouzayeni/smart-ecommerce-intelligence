@@ -1,0 +1,43 @@
+-- Grain: one row per order (all 99,441 source orders, every status: BR-10).
+-- Item, payment and review measures are pre-aggregated per order, so this fact never
+-- double counts. Filter on is_revenue_order / is_in_analysis_window for KPIs.
+-- depends_on: {{ ref('dim_customers') }} {{ ref('dim_date') }} {{ ref('dim_payment_type') }}
+select
+    order_id,
+    customer_unique_id,
+    customer_id,
+    {{ date_key('purchase_date') }}           as purchase_date_key,
+    order_status,
+    purchased_at,
+    approved_at,
+    delivered_to_carrier_at,
+    delivered_to_customer_at,
+    estimated_delivery_date,
+    customer_zip_code_prefix                  as customer_zip_code_prefix_at_order,
+    customer_city                             as customer_city_at_order,
+    customer_state                            as customer_state_at_order,
+    item_count::integer                       as item_count,
+    distinct_sellers::integer                 as distinct_sellers,
+    price_total::numeric(14, 2)               as price_total,
+    freight_total::numeric(14, 2)             as freight_total,
+    gmv::numeric(14, 2)                       as gmv,
+    payment_count::integer                    as payment_count,
+    payment_total::numeric(14, 2)             as payment_total,
+    max_installments,
+    primary_payment_type,
+    review_score,
+    review_count::integer                     as review_count,
+    delivery_days::numeric(10, 4)             as delivery_days,
+    is_late,
+    estimated_lead_days,
+    is_revenue_order,
+    is_in_analysis_window,
+    is_delivery_kpi_eligible,
+    has_items,
+    has_payment,
+    is_payment_reconciled,
+    is_delivered_without_date,
+    is_undelivered_with_date,
+    is_carrier_before_purchase,
+    is_delivery_before_carrier
+from {{ ref('int_orders_enriched') }}

@@ -1,0 +1,24 @@
+# Credentials come from environment variables (loaded from .env by
+# data_engineering/scripts/run_dbt.py). Never put secrets in this file.
+olist_warehouse:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('POSTGRES_HOST', 'localhost') }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | as_number }}"
+      dbname: "{{ env_var('POSTGRES_DB') }}"
+      user: "{{ env_var('ETL_DB_USER') }}"
+      password: "{{ env_var('ETL_DB_PASSWORD') }}"
+      schema: marts  # dev: models go to their configured schema as-is (staging, marts, ...)
+      threads: 4
+    test:
+      type: postgres
+      host: "{{ env_var('POSTGRES_HOST', 'localhost') }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | as_number }}"
+      dbname: "{{ env_var('POSTGRES_DB') }}"
+      user: "{{ env_var('ETL_DB_USER') }}"
+      password: "{{ env_var('ETL_DB_PASSWORD') }}"
+      # test: every schema is prefixed, e.g. test_ab12cd34_staging, so runs are isolated.
+      schema: "{{ env_var('DBT_SCHEMA_PREFIX', 'test') }}"
+      threads: 4

@@ -18,7 +18,7 @@ permission-controlled AI business assistant.
 | 1 | Repository and development environment | Done |
 | 2 | Data exploration and quality assessment | Done — [business rules](docs/business_rules.md), [quality report](docs/data_quality_report.md), [notebook](notebooks/exploration/01_exploratory_analysis.ipynb) |
 | 3 | ETL and PostgreSQL warehouse | Bronze done — [ETL docs](docs/etl_bronze.md); silver/gold are built by dbt in Phase 4 |
-| 4 | dbt transformations and tests | Not started |
+| 4 | dbt transformations and tests | Done — [star schema](docs/star_schema.md) |
 | 5 | SQL analytics and Power BI | Not started |
 | 6 | RFM, repurchase propensity and CLV | Not started |
 | 7 | Sales forecasting and anomaly detection | Not started |
@@ -96,7 +96,11 @@ uv run pytest -m db
 # 5. Bronze load: manifest + pandera contract + quality gate, then COPY into raw.*
 uv run python -m data_engineering.etl.load_bronze
 
-# 6. Git hooks (ruff, large-file guard, private-key detection)
+# 6. Silver + gold with dbt: staging -> intermediate -> marts (star schema), 70 tests
+uv sync --group dbt
+uv run --group dbt python -m data_engineering.scripts.run_dbt build
+
+# 7. Git hooks (ruff, large-file guard, private-key detection)
 uv run pre-commit install
 ```
 
