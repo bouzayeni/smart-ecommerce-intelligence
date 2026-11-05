@@ -27,7 +27,7 @@ permission-controlled AI business assistant.
 | 10 | React frontend | Done — [frontend docs](docs/frontend.md) |
 | 11 | AI business assistant | Done — [assistant docs](docs/assistant.md); live LLM check pending an `ANTHROPIC_API_KEY` |
 | 12 | MLflow, Docker, CI/CD, security | Done — [deployment & MLOps](docs/deployment.md), [security](docs/security.md); Docker images and CI not yet run (no Docker locally, no remote) |
-| 13 | Integration and end-to-end tests | Not started |
+| 13 | Integration and end-to-end tests | Done — [test layers](docs/deployment.md#test-layers); browser suite opt-in (`RUN_E2E=1`) |
 | 14 | Documentation and portfolio | Not started |
 
 ## Repository layout
@@ -144,6 +144,7 @@ uv run pre-commit install
 ```bash
 uv run pytest                                          # all tests (DB tests need step 4)
 uv run pytest -m "not db and not llm"                 # what CI runs
+RUN_E2E=1 uv run --all-groups pytest -m e2e          # browser E2E (build the frontend first)
 uv run ruff check . && uv run ruff format --check .    # lint
 uv run python -m data_engineering.scripts.profile_raw  # Phase 0 raw-data profile report
 uv run python -m data_engineering.scripts.make_sample  # regenerate data/sample from data/raw

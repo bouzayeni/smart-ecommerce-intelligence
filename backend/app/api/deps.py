@@ -60,6 +60,7 @@ def require_role(minimum: str):
                 required=minimum,
                 role=user.role,
             )
+            session.commit()  # keep the denial record: the error response rolls back
             raise HTTPException(status.HTTP_403_FORBIDDEN, f"Requires role '{minimum}' or higher")
         return user
 
