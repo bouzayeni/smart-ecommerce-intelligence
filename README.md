@@ -2,50 +2,123 @@
 
 End-to-end analytics, machine learning and BI platform built on the
 [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce):
-ETL into a PostgreSQL warehouse, dbt star schema, Power BI reporting, customer / forecasting /
-anomaly / recommendation models tracked in MLflow, a FastAPI backend, a React frontend and a
-permission-controlled AI business assistant.
+a tested ETL into a PostgreSQL warehouse, a dbt star schema, Power BI reporting, customer,
+forecasting, anomaly and recommendation models tracked in MLflow, a secured FastAPI backend,
+a React frontend and a permission-controlled AI business assistant built on Claude.
 
 > **Historical data.** The dataset covers Olist marketplace orders from 2016-09 to 2018-10
 > (usable continuous period 2017-01 to 2018-08). Nothing in this project is live transactional
 > data, and "forecasts" are predictions of late-2018 periods.
 
-## Status
+![Executive dashboard](docs/screenshots/executive.png)
+
+**Reviewers:** start with the [portfolio overview](docs/portfolio.md): findings, model results
+against baselines, screenshots of every page, and where to look by role.
+
+## Highlights
+
+- **Data engineering:** hash-checked, idempotent bronze load with lineage columns; 79
+  data-quality checks gating the load; dbt staging → intermediate → marts with enforced
+  contracts, PK/FK constraints and tests; three least-privilege database roles.
+- **Analytics and BI:** one definition per KPI, implemented as SQL views and DAX measures and
+  reconciled; [business findings](docs/business_findings.md) generated from those views.
+- **Machine learning:** point-in-time features, chronological train/validation/test splits,
+  every model compared with a simple baseline with bootstrap confidence intervals; MLflow
+  registry with a quality-gated `champion` alias.
+- **Application:** FastAPI with JWT and rotating refresh tokens, RBAC (viewer < analyst <
+  admin), audit log and rate limits; React app with 14 pages; an assistant that answers only
+  from read-only, role-filtered tools.
+- **Quality:** unit, contract, pipeline, cross-layer consistency, API journey and Playwright
+  browser tests; CI with lint, tests, security scans and image builds
+  ([test layers](docs/deployment.md#test-layers)).
+
+## What the data says, and how well the models do
+
+| Question | Answer |
+|---|---|
+| GMV in the analysis window | R$ 15.6 M from 97,222 orders and 94,046 customers |
+| Repeat customers | 3.03%: growth came from acquisition, not loyalty |
+| Late vs on-time deliveries | Average review 2.21 vs 4.28 |
+| Best model vs its baseline | Recommendations beat popularity for returning buyers (hit rate@10 0.060 vs 0.014) |
+| Honest negatives | Repurchase and 90-day spend models do not beat simple rules; the backtest-selected forecast is worse than seasonal naive on test |
+
+Details: [business findings](docs/business_findings.md), [model cards](docs/model_cards/),
+[limitations](docs/limitations.md).
+
+## Architecture
+
+```
+Kaggle CSVs ─► quality gate ─► raw ─► dbt: staging ─► intermediate ─► marts (star + KPI views)
+                                                                         │
+                     ML scripts ◄────────────────────────────────────────┤
+                        ├─► ml.* scores, forecasts, recommendations ─────┤
+                        └─► MLflow registry ─► @champion ─► serving bundles
+                                                                         │
+            Power BI ◄── analytics_ro ──┬────────────────────────────────┘
+                                        ▼
+                      FastAPI (JWT, RBAC, audit) ◄──► React SPA (nginx)
+                                        └──► AI assistant ◄──► Claude API
+```
+
+Full diagrams (components, roles, request and assistant flows) and design decisions:
+[docs/architecture.md](docs/architecture.md).
+
+## Documentation
+
+| Topic | Document |
+|---|---|
+| Portfolio overview | [docs/portfolio.md](docs/portfolio.md) |
+| Architecture | [docs/architecture.md](docs/architecture.md) |
+| Dataset card | [docs/dataset_card.md](docs/dataset_card.md) |
+| Requirements and dataset inspection | [docs/phase0_findings.md](docs/phase0_findings.md) |
+| Business rules | [docs/business_rules.md](docs/business_rules.md) |
+| Data quality report | [docs/data_quality_report.md](docs/data_quality_report.md) |
+| ETL | [docs/etl_bronze.md](docs/etl_bronze.md) |
+| Star schema and ER diagram | [docs/star_schema.md](docs/star_schema.md) |
+| Data dictionary (generated) | [docs/data_dictionary.md](docs/data_dictionary.md) |
+| KPI dictionary | [docs/kpi_dictionary.md](docs/kpi_dictionary.md) |
+| Business findings (generated) | [docs/business_findings.md](docs/business_findings.md) |
+| Power BI | [powerbi/documentation/report_spec.md](powerbi/documentation/report_spec.md) |
+| Model cards | [repurchase](docs/model_cards/repurchase_propensity.md), [90-day spend](docs/model_cards/customer_spend_90d.md), [RFM](docs/model_cards/rfm_segmentation.md), [forecasting](docs/model_cards/sales_forecasting.md), [anomalies](docs/model_cards/anomaly_detection.md), [recommendations](docs/model_cards/recommendations.md) |
+| API | [docs/api.md](docs/api.md) (interactive docs at `/docs` when running) |
+| Frontend | [docs/frontend.md](docs/frontend.md) |
+| AI assistant | [docs/assistant.md](docs/assistant.md) |
+| MLOps, Docker, CI and test layers | [docs/deployment.md](docs/deployment.md) |
+| Security | [docs/security.md](docs/security.md), [SECURITY.md](SECURITY.md) |
+| Limitations and future work | [docs/limitations.md](docs/limitations.md) |
+
+## Build history
+
+Built in 15 phases (0–14), each verified before the next, with one commit per phase.
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 | Requirements, dataset inspection, architecture | Done — see [docs/phase0_findings.md](docs/phase0_findings.md) |
-| 1 | Repository and development environment | Done |
-| 2 | Data exploration and quality assessment | Done — [business rules](docs/business_rules.md), [quality report](docs/data_quality_report.md), [notebook](notebooks/exploration/01_exploratory_analysis.ipynb) |
-| 3 | ETL and PostgreSQL warehouse | Bronze done — [ETL docs](docs/etl_bronze.md); silver/gold are built by dbt in Phase 4 |
-| 4 | dbt transformations and tests | Done — [star schema](docs/star_schema.md) |
-| 5 | SQL analytics and Power BI | Done — [KPI dictionary](docs/kpi_dictionary.md), [Power BI](powerbi/documentation/report_spec.md); DAX value check pending a refresh in Desktop |
-| 6 | RFM, repurchase propensity and CLV | Done — model cards: [repurchase](docs/model_cards/repurchase_propensity.md), [90-day spend](docs/model_cards/customer_spend_90d.md), [RFM](docs/model_cards/rfm_segmentation.md) |
-| 7 | Sales forecasting and anomaly detection | Done — model cards: [forecasting](docs/model_cards/sales_forecasting.md), [anomalies](docs/model_cards/anomaly_detection.md) |
-| 8 | Recommendations | Done — [model card](docs/model_cards/recommendations.md) |
-| 9 | FastAPI backend | Done — [API docs](docs/api.md) |
-| 10 | React frontend | Done — [frontend docs](docs/frontend.md) |
-| 11 | AI business assistant | Done — [assistant docs](docs/assistant.md); live LLM check pending an `ANTHROPIC_API_KEY` |
-| 12 | MLflow, Docker, CI/CD, security | Done — [deployment & MLOps](docs/deployment.md), [security](docs/security.md); Docker images and CI not yet run (no Docker locally, no remote) |
-| 13 | Integration and end-to-end tests | Done — [test layers](docs/deployment.md#test-layers); browser suite opt-in (`RUN_E2E=1`) |
-| 14 | Documentation and portfolio | Not started |
+| 0–2 | Requirements, environment, exploration and data quality | Done |
+| 3–4 | Bronze ETL; dbt silver/gold star schema and tests | Done |
+| 5 | SQL analytics and Power BI | Done; DAX value check pending a refresh in Desktop |
+| 6–8 | Customer models, forecasting and anomalies, recommendations | Done |
+| 9–10 | FastAPI backend, React frontend | Done |
+| 11 | AI business assistant | Done; live LLM check pending an `ANTHROPIC_API_KEY` |
+| 12 | MLflow promotion, Docker, CI/CD, security | Done; images and CI not yet run (no Docker locally, no remote) |
+| 13 | Integration and end-to-end tests | Done |
+| 14 | Documentation and portfolio | Done |
 
 ## Repository layout
 
 ```
-backend/            FastAPI service (Phase 9)
-frontend/           React + TypeScript app (Phase 10)
+backend/            FastAPI service, Alembic migrations, scripts (admin, screenshots)
+frontend/           React + TypeScript app
 data/raw/           Downloaded Olist CSVs + _manifest.json (git-ignored)
-data/processed/     Generated intermediates (git-ignored)
 data/sample/        Small, referentially consistent fixture used by tests and CI (committed)
-data_engineering/   Settings, source-file spec, ETL, validation, scripts
+data_engineering/   Settings, source-file spec, ETL, validation, doc generators
 warehouse/          SQL scripts and dbt project
-notebooks/          Exploration and modeling notebooks
+ml/                 Training, scoring, promotion and export scripts
+notebooks/          Exploration notebook
 models/  mlflow/    Model artifacts and experiment tracking (git-ignored outputs)
-powerbi/            Power BI project (PBIP) and DAX documentation
-infrastructure/     Docker init scripts and deployment config
-docs/               Architecture, data dictionary, model and dataset cards
-tests/              Python tests
+powerbi/            Power BI project (PBIP/TMDL) and DAX documentation
+infrastructure/     PostgreSQL init SQL, Dockerfiles, nginx config
+docs/               Architecture, dictionaries, model and dataset cards, screenshots
+tests/              Python tests (pipeline, ML, consistency, docs)
 ```
 
 Deviation from the original brief: GitHub only runs workflows from `.github/workflows/`, so the
@@ -56,7 +129,7 @@ CI workflow lives there rather than in `infrastructure/github-actions/`.
 | Tool | Version | Used for |
 |---|---|---|
 | [uv](https://docs.astral.sh/uv/) | 0.5+ | Python 3.11 toolchain, virtualenv, lockfile |
-| Docker Desktop (WSL2 backend on Windows) | recent | PostgreSQL and, later, the full stack |
+| Docker Desktop (WSL2 backend on Windows) | recent | Optional: PostgreSQL and the app stack (native PostgreSQL 16 also works) |
 | Node.js | ^20.19 or >=22.12 | Frontend |
 | Git | 2.30+ | |
 
@@ -156,6 +229,12 @@ uv run python -m data_engineering.scripts.assess_quality --raw-dir data/sample  
 # Exploration notebook (optional dependency group)
 uv sync --group notebooks
 uv run --group notebooks jupyter nbconvert --to notebook --execute --inplace notebooks/exploration/01_exploratory_analysis.ipynb
+
+# Generated documentation (after rebuilding the warehouse)
+uv run python -m data_engineering.scripts.build_data_dictionary     # docs/data_dictionary.md
+uv run python -m data_engineering.scripts.build_business_findings   # docs/business_findings.md
+# Screenshots: API on :8000 + `npm --prefix frontend run preview`, then (admin account)
+SCREENSHOT_EMAIL=... SCREENSHOT_PASSWORD=... uv run --all-groups python backend/scripts/capture_screenshots.py
 ```
 
 Model promotion, Docker and CI: see [docs/deployment.md](docs/deployment.md).
