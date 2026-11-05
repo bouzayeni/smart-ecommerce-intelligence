@@ -1,6 +1,6 @@
 # AI business assistant
 
-Ask questions about the warehouse in plain language. The model (Claude, via the Anthropic
+Ask questions about the warehouse in plain language. The language model (via the Anthropic
 API) never sees the database directly. It can only call a fixed set of read-only tools, and
 every number in an answer must come from a tool result that is returned with the answer.
 

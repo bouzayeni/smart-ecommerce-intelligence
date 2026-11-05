@@ -82,4 +82,4 @@ Captured from the running application with real warehouse data by
 
 What is not verified, and what would come next, is listed in [limitations.md](limitations.md).
 The three biggest gaps are: CI and Docker images never run (no remote, no Docker locally), the
-live Claude path not run (no API key), and Power BI values not yet checked in Desktop.
+live LLM path not run (no API key), and Power BI values not yet checked in Desktop.

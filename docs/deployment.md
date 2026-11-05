@@ -76,7 +76,7 @@ because the repository has no remote yet.
 | Cross-layer consistency | `tests/test_warehouse_consistency.py` (12) | Local (`-m db`) | raw → marts → ml → serving agree: row counts, per-order totals, KPI sums, RFM coverage, score coverage, forecast horizon, batch scores from the champion, bundles = champion |
 | API journeys | `backend/tests/test_journeys.py` (4) | Local (`-m db`) | Multi-step sessions: pages agree with each other and with SQL; promotion and demotion take effect on the next request; refresh then logout; bundle and registry give the same prediction |
 | Browser end-to-end | `backend/tests/test_e2e_browser.py` (5) | Opt-in: `RUN_E2E=1 pytest -m e2e` | Built frontend + real API in Edge or Chrome via Playwright: login, dashboard value equals the warehouse, role gate, reload keeps the session, a rate-limited refresh keeps it, logout, Customer 360, assistant tools-only mode, no console errors |
-| Live LLM | `backend/tests/test_assistant.py::test_live_top_category` | Opt-in: `RUN_LLM_TESTS=1 pytest -m llm` | Real Claude answer is grounded in tool results (not yet run: no API key) |
+| Live LLM | `backend/tests/test_assistant.py::test_live_top_category` | Opt-in: `RUN_LLM_TESTS=1 pytest -m llm` | Real LLM answer is grounded in tool results (not yet run: no API key) |
 
 Full local run on 2026-11-05: 268 passed, 6 skipped (5 browser tests and 1 live LLM test,
 which are opt-in). The browser suite was run separately with `RUN_E2E=1`: 5 passed in 20 s.

@@ -4,7 +4,7 @@ End-to-end analytics, machine learning and BI platform built on the
 [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce):
 a tested ETL into a PostgreSQL warehouse, a dbt star schema, Power BI reporting, customer,
 forecasting, anomaly and recommendation models tracked in MLflow, a secured FastAPI backend,
-a React frontend and a permission-controlled AI business assistant built on Claude.
+a React frontend and a permission-controlled AI business assistant powered by an LLM.
 
 > **Historical data.** The dataset covers Olist marketplace orders from 2016-09 to 2018-10
 > (usable continuous period 2017-01 to 2018-08). Nothing in this project is live transactional
@@ -57,7 +57,7 @@ Kaggle CSVs ─► quality gate ─► raw ─► dbt: staging ─► intermedia
             Power BI ◄── analytics_ro ──┬────────────────────────────────┘
                                         ▼
                       FastAPI (JWT, RBAC, audit) ◄──► React SPA (nginx)
-                                        └──► AI assistant ◄──► Claude API
+                                        └──► AI assistant ◄──► LLM API
 ```
 
 Full diagrams (components, roles, request and assistant flows) and design decisions:
