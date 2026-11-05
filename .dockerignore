@@ -1,0 +1,21 @@
+# Build context hygiene: no secrets, data, caches or local environments in images.
+.env
+.env.*
+!.env.example
+.git
+**/__pycache__
+**/*.pyc
+.venv
+.pytest_cache
+.ruff_cache
+.vite
+data
+mlflow
+models
+notebooks
+powerbi
+warehouse/dbt/target
+warehouse/dbt/logs
+frontend/node_modules
+frontend/dist
+frontend/*.tsbuildinfo

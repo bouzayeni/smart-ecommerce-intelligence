@@ -28,5 +28,77 @@ services:
       timeout: 5s
       retries: 10
 
+  # ---- application stack: docker compose --profile app up -d --build ----
+  # The warehouse (raw/staging/marts/ml) must already be loaded into this Postgres by the
+  # ETL, dbt and ML pipelines; these services only read it (and own the app schema).
+  migrate:
+    profiles: ["app"]
+    build: { context: ., dockerfile: infrastructure/docker/api/Dockerfile }
+    image: sei-api:local
+    command: ["alembic", "-c", "backend/alembic.ini", "upgrade", "head"]
+    environment: &api-env
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-olist_dw}
+      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER:-analytics_ro}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD:?set ANALYTICS_DB_PASSWORD in .env}
+      APP_DB_USER: ${APP_DB_USER:-app_user}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?set APP_DB_PASSWORD in .env}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8080}
+      LLM_PROVIDER: ${LLM_PROVIDER:-anthropic}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5-5}
+      MLFLOW_TRACKING_URI: sqlite:////app/mlflow/mlflow.db
+      SERVING_MODELS_DIR: /app/models/serving
+    depends_on:
+      postgres: { condition: service_healthy }
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+
+  api:
+    profiles: ["app"]
+    image: sei-api:local
+    environment: *api-env
+    volumes:
+      # Registry metadata for /api/models/status (read-only).
+      - ./mlflow:/app/mlflow:ro
+      # Champion models exported with `python -m ml.export_serving_models`.
+      - ./models/serving:/app/models/serving:ro
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    mem_limit: 1g
+    restart: unless-stopped
+
+  web:
+    profiles: ["app"]
+    build: { context: ., dockerfile: infrastructure/docker/web/Dockerfile }
+    image: sei-web:local
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:8080"
+    depends_on:
+      api: { condition: service_healthy }
+    read_only: true
+    tmpfs: ["/tmp", "/var/cache/nginx"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    restart: unless-stopped
+
+  # MLflow UI over the local registry: docker compose --profile mlflow up mlflow
+  mlflow:
+    profiles: ["mlflow"]
+    image: ghcr.io/mlflow/mlflow:v3.18.0  # same version as uv.lock (registry schema)
+    command: ["mlflow", "ui", "--backend-store-uri", "sqlite:////mlflow/mlflow.db",
+              "--host", "0.0.0.0", "--port", "5000"]
+    volumes:
+      - ./mlflow:/mlflow
+    ports:
+      - "127.0.0.1:${MLFLOW_PORT:-5000}:5000"
+
 volumes:
   pgdata:

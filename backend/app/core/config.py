@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     rate_limit_assistant: str = "20/minute"
 
     mlflow_tracking_uri: str = ""
+    # Containers: directory of exported champion models (ml/export_serving_models.py).
+    serving_models_dir: Path | None = None
     data_quality_results_path: Path = (
         REPO_ROOT / "data" / "processed" / "quality" / "dq_results.json"
     )

@@ -14,14 +14,17 @@ DEFAULT_URI = f"sqlite:///{(MLFLOW_DIR / 'mlflow.db').as_posix()}"
 ARTIFACT_ROOT = (MLFLOW_DIR / "artifacts").as_uri()
 
 
+def tracking_uri() -> str:
+    """MLFLOW_TRACKING_URI, or the project SQLite store (needed for the model registry)."""
+    load_dotenv(PROJECT_ROOT / ".env", override=False)
+    uri = os.environ.get("MLFLOW_TRACKING_URI") or DEFAULT_URI
+    return DEFAULT_URI if uri.startswith("file:") else uri  # .env.example's old default
+
+
 def setup(experiment: str) -> str:
     """Point MLflow at the project store and return the experiment id."""
-    load_dotenv(PROJECT_ROOT / ".env", override=False)
     MLFLOW_DIR.mkdir(exist_ok=True)
-    uri = os.environ.get("MLFLOW_TRACKING_URI") or DEFAULT_URI
-    if uri.startswith("file:"):  # .env.example's old default; SQLite is needed for the registry
-        uri = DEFAULT_URI
-    mlflow.set_tracking_uri(uri)
+    mlflow.set_tracking_uri(tracking_uri())
     existing = mlflow.get_experiment_by_name(experiment)
     experiment_id = (
         existing.experiment_id

@@ -24,6 +24,10 @@ export default function ModelsPage() {
                   columns={[
                     { key: "name", header: "Model", value: (r) => r.name },
                     { key: "v", header: "Latest version", value: (r) => Number(r.latest_version), align: "right" },
+                    { key: "serving", header: "Serving", value: (r) => Number(r.serving_version), render: (r) => (
+                      <span className="inline-flex items-center gap-1.5">v{r.serving_version}
+                        <Badge tone={r.serving_source === "champion" ? "good" : "warning"}>{r.serving_source}</Badge></span>
+                    ) },
                     { key: "status", header: "Status", value: (r) => r.status, render: (r) => <Badge tone="good">{r.status}</Badge> },
                     { key: "created", header: "Registered", value: (r) => r.created_at, render: (r) => new Date(r.created_at).toISOString().slice(0, 16).replace("T", " ") },
                   ]}
