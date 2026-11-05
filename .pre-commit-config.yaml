@@ -1,0 +1,19 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      # data/ holds byte-for-byte raw fixtures; whitespace fixers must not touch it.
+      - id: end-of-file-fixer
+        exclude: ^data/
+      - id: trailing-whitespace
+        exclude: ^data/
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ["--maxkb=1500"]  # blocks accidental commits of raw Olist CSVs
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
