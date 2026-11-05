@@ -1,0 +1,145 @@
+table fact_payments
+	lineageTag: a636edff-829d-58ed-99a4-59c5a12f302e
+
+	/// Σ payment_value of revenue orders in the window (separate from GMV, BR-04).
+	measure 'Payment Value (BRL)' = ```
+			CALCULATE (
+			    SUM ( fact_payments[payment_value] ),
+			    fact_payments[is_revenue_order] = TRUE (),
+			    fact_payments[is_in_analysis_window] = TRUE ()
+			)
+			```
+		formatString: #,0.00
+		displayFolder: Payments
+		lineageTag: 4f3699f9-b33a-5866-9bee-850276f72d3f
+
+	/// Mean installments per payment line, revenue orders in the window.
+	measure 'Avg Installments' = ```
+			CALCULATE (
+			    AVERAGE ( fact_payments[payment_installments] ),
+			    fact_payments[is_revenue_order] = TRUE (),
+			    fact_payments[is_in_analysis_window] = TRUE ()
+			)
+			```
+		formatString: 0.00
+		displayFolder: Payments
+		lineageTag: 2e8924f5-9fb3-50a5-a3e6-dfd1b5893eda
+
+	column order_id
+		dataType: string
+		lineageTag: 44f4da6c-ae1d-5999-acc0-15ffc86ec479
+		summarizeBy: none
+		sourceColumn: order_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column payment_sequential
+		dataType: int64
+		formatString: 0
+		lineageTag: 45234ce1-0a88-5d6d-8017-058a00bd29a2
+		summarizeBy: none
+		sourceColumn: payment_sequential
+
+		annotation SummarizationSetBy = Automatic
+
+	column payment_type
+		dataType: string
+		lineageTag: 3f345462-695f-502c-b9c3-4e2ffaad9369
+		summarizeBy: none
+		sourceColumn: payment_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column payment_type_source
+		dataType: string
+		lineageTag: 0f9ef0f0-678e-5df6-b05b-ac3f8b71954d
+		summarizeBy: none
+		sourceColumn: payment_type_source
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_unique_id
+		dataType: string
+		lineageTag: 18b9f93b-9d13-5907-8de1-1f3ec04ded83
+		summarizeBy: none
+		sourceColumn: customer_unique_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column purchase_date_key
+		dataType: int64
+		formatString: 0
+		isHidden
+		lineageTag: 4f39c4da-2445-5d94-b059-ac59ebba55c8
+		summarizeBy: none
+		sourceColumn: purchase_date_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column payment_installments
+		dataType: int64
+		formatString: 0
+		lineageTag: d4d00cc7-0cbb-599b-92f9-dd13e636e9dd
+		summarizeBy: none
+		sourceColumn: payment_installments
+
+		annotation SummarizationSetBy = Automatic
+
+	column payment_value
+		dataType: double
+		lineageTag: 485fbe23-a40c-5a4a-91ed-8ca89f7cc834
+		summarizeBy: none
+		sourceColumn: payment_value
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_non_positive_value
+		dataType: boolean
+		lineageTag: db0dab04-2798-5a8c-a7cc-b77957f14895
+		summarizeBy: none
+		sourceColumn: is_non_positive_value
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_zero_installments
+		dataType: boolean
+		lineageTag: eafcc49e-1d84-5652-859f-fe96a517b811
+		summarizeBy: none
+		sourceColumn: is_zero_installments
+
+		annotation SummarizationSetBy = Automatic
+
+	column order_status
+		dataType: string
+		lineageTag: 72e29dda-247c-5420-9ef4-539f85d7c25b
+		summarizeBy: none
+		sourceColumn: order_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_revenue_order
+		dataType: boolean
+		lineageTag: e5d17ed4-1032-57d8-8623-2f6d389b87a2
+		summarizeBy: none
+		sourceColumn: is_revenue_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_in_analysis_window
+		dataType: boolean
+		lineageTag: db510b6b-38f9-5190-aac0-51bfcd61dabe
+		summarizeBy: none
+		sourceColumn: is_in_analysis_window
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_payments = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(PostgresServer, PostgresDatabase),
+				    Data = Source{[Schema="marts", Item="fact_payments"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

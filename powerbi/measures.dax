@@ -1,0 +1,227 @@
+// Generated from powerbi/measures.yaml by build_powerbi_model.py. Do not edit.
+// Paste into DAX query view or Tabular Editor; definitions: docs/kpi_dictionary.md
+DEFINE
+    // [S1] Sales | Σ(price + freight) of revenue orders in the analysis window.
+    MEASURE fact_orders[GMV (BRL)] =
+        CALCULATE (
+            SUM ( fact_orders[gmv] ),
+            fact_orders[is_revenue_order] = TRUE (),
+            fact_orders[is_in_analysis_window] = TRUE ()
+        )
+
+    // [S2] Sales | Orders with a revenue status in the analysis window.
+    MEASURE fact_orders[Revenue Orders] =
+        CALCULATE (
+            COUNTROWS ( fact_orders ),
+            fact_orders[is_revenue_order] = TRUE (),
+            fact_orders[is_in_analysis_window] = TRUE ()
+        )
+
+    // [S3] Sales | GMV / revenue orders.
+    MEASURE fact_orders[Average Order Value (BRL)] =
+        DIVIDE ( [GMV (BRL)], [Revenue Orders] )
+
+    // [S1] Sales | Σ price (GMV without freight).
+    MEASURE fact_orders[Merchandise Value (BRL)] =
+        CALCULATE (
+            SUM ( fact_orders[price_total] ),
+            fact_orders[is_revenue_order] = TRUE (),
+            fact_orders[is_in_analysis_window] = TRUE ()
+        )
+
+    // [S4] Sales | GMV of the previous calendar month (time intelligence on dim_date).
+    MEASURE fact_orders[GMV Previous Month (BRL)] =
+        CALCULATE ( [GMV (BRL)], DATEADD ( dim_date[date_day], -1, MONTH ) )
+
+    // [S4] Sales | Month-over-month GMV growth; blank unless one month is selected and both it and the previous month are complete (Aug 2018 is partial).
+    MEASURE fact_orders[GMV MoM Growth %] =
+        VAR IsOneMonth = HASONEVALUE ( dim_date[year_month] )
+        VAR CurrentComplete = SELECTEDVALUE ( dim_date[is_complete_month_in_window] )
+        VAR PreviousComplete =
+            CALCULATE (
+                SELECTEDVALUE ( dim_date[is_complete_month_in_window] ),
+                DATEADD ( dim_date[date_day], -1, MONTH )
+            )
+        VAR Previous = [GMV Previous Month (BRL)]
+        RETURN
+            IF (
+                IsOneMonth && CurrentComplete = TRUE () && PreviousComplete = TRUE (),
+                DIVIDE ( [GMV (BRL)] - Previous, Previous )
+            )
+
+    // [S5] Sales | Item-level GMV; use for category, product and seller breakdowns.
+    MEASURE fact_order_items[Item GMV (BRL)] =
+        CALCULATE (
+            SUM ( fact_order_items[gmv] ),
+            fact_order_items[is_revenue_order] = TRUE (),
+            fact_order_items[is_in_analysis_window] = TRUE ()
+        )
+
+    // [S5] Sales | Item rows (one row = one unit, BR-05) of revenue orders in the window.
+    MEASURE fact_order_items[Units Sold] =
+        CALCULATE (
+            COUNTROWS ( fact_order_items ),
+            fact_order_items[is_revenue_order] = TRUE (),
+            fact_order_items[is_in_analysis_window] = TRUE ()
+        )
+
+    // [S5] Sales | Item GMV in the current context / item GMV across all categories.
+    MEASURE fact_order_items[Category Share of GMV %] =
+        DIVIDE ( [Item GMV (BRL)], CALCULATE ( [Item GMV (BRL)], REMOVEFILTERS ( dim_products ) ) )
+
+    // [S7] Sales | Rank of the product in context by item GMV (1 = top); blank without a single product.
+    MEASURE fact_order_items[Product GMV Rank] =
+        IF (
+            HASONEVALUE ( dim_products[product_id] ) && NOT ISBLANK ( [Item GMV (BRL)] ),
+            RANKX ( ALL ( dim_products[product_id] ), [Item GMV (BRL)], , DESC, SKIP )
+        )
+
+    // [C1] Customers | Distinct customer_unique_id with at least one revenue order in context.
+    MEASURE fact_orders[Customers] =
+        CALCULATE (
+            DISTINCTCOUNT ( fact_orders[customer_unique_id] ),
+            fact_orders[is_revenue_order] = TRUE (),
+            fact_orders[is_in_analysis_window] = TRUE ()
+        )
+
+    // [C2] Customers | Customers with 2+ revenue orders within the current filter context.
+    MEASURE fact_orders[Repeat Customers] =
+        VAR CustomerOrders =
+            CALCULATETABLE (
+                ADDCOLUMNS (
+                    VALUES ( fact_orders[customer_unique_id] ),
+                    "@orders", CALCULATE ( COUNTROWS ( fact_orders ) )
+                ),
+                fact_orders[is_revenue_order] = TRUE (),
+                fact_orders[is_in_analysis_window] = TRUE ()
+            )
+        RETURN
+            COUNTROWS ( FILTER ( CustomerOrders, [@orders] >= 2 ) )
+
+    // [C2] Customers | Repeat customers / customers.
+    MEASURE fact_orders[Repeat Purchase Rate %] =
+        DIVIDE ( [Repeat Customers], [Customers] )
+
+    // [C3] Customers | Revenue orders / customers.
+    MEASURE fact_orders[Avg Orders per Customer] =
+        DIVIDE ( [Revenue Orders], [Customers] )
+
+    // [C4] Customers | Share of GMV from the top 10% of customers by GMV (ties at the boundary can add customers).
+    MEASURE fact_orders[Top 10% Customers GMV Share %] =
+        VAR TopCount = ROUNDUP ( [Customers] * 0.1, 0 )
+        VAR CustomerGmv =
+            CALCULATETABLE (
+                ADDCOLUMNS ( VALUES ( fact_orders[customer_unique_id] ), "@gmv", [GMV (BRL)] ),
+                fact_orders[is_revenue_order] = TRUE (),
+                fact_orders[is_in_analysis_window] = TRUE ()
+            )
+        VAR TopCustomers = TOPN ( TopCount, CustomerGmv, [@gmv], DESC )
+        RETURN
+            DIVIDE ( SUMX ( TopCustomers, [@gmv] ), [GMV (BRL)] )
+
+    // [O1] Operations | Population for delivery KPIs (BR-07).
+    MEASURE fact_orders[Delivery-Eligible Orders] =
+        CALCULATE (
+            COUNTROWS ( fact_orders ),
+            fact_orders[is_delivery_kpi_eligible] = TRUE (),
+            fact_orders[is_in_analysis_window] = TRUE ()
+        )
+
+    // [O1] Operations | Mean purchase-to-delivery time in days, eligible orders.
+    MEASURE fact_orders[Avg Delivery Days] =
+        CALCULATE (
+            AVERAGE ( fact_orders[delivery_days] ),
+            fact_orders[is_delivery_kpi_eligible] = TRUE (),
+            fact_orders[is_in_analysis_window] = TRUE ()
+        )
+
+    // [O1] Operations | Median purchase-to-delivery time in days, eligible orders.
+    MEASURE fact_orders[Median Delivery Days] =
+        CALCULATE (
+            MEDIAN ( fact_orders[delivery_days] ),
+            fact_orders[is_delivery_kpi_eligible] = TRUE (),
+            fact_orders[is_in_analysis_window] = TRUE ()
+        )
+
+    // [O3] Operations | Eligible orders delivered after the estimated date / eligible orders.
+    MEASURE fact_orders[Late Delivery Rate %] =
+        DIVIDE (
+            CALCULATE (
+                COUNTROWS ( fact_orders ),
+                fact_orders[is_delivery_kpi_eligible] = TRUE (),
+                fact_orders[is_in_analysis_window] = TRUE (),
+                fact_orders[is_late] = TRUE ()
+            ),
+            [Delivery-Eligible Orders]
+        )
+
+    // [O2] Operations | 1 − late delivery rate (blank without eligible orders).
+    MEASURE fact_orders[On-Time Delivery Rate %] =
+        IF ( NOT ISBLANK ( [Delivery-Eligible Orders] ), 1 - [Late Delivery Rate %] )
+
+    // [O4] Operations | Orders of any status purchased in the analysis window.
+    MEASURE fact_orders[All Orders] =
+        CALCULATE ( COUNTROWS ( fact_orders ), fact_orders[is_in_analysis_window] = TRUE () )
+
+    // [O4] Operations | Orders with status canceled or unavailable / all orders (status at extract time).
+    MEASURE fact_orders[Cancellation Rate %] =
+        DIVIDE (
+            CALCULATE (
+                COUNTROWS ( fact_orders ),
+                fact_orders[is_in_analysis_window] = TRUE (),
+                fact_orders[order_status] IN { "canceled", "unavailable" }
+            ),
+            [All Orders]
+        )
+
+    // [O5] Operations | Σ freight / revenue orders.
+    MEASURE fact_orders[Avg Freight per Order (BRL)] =
+        DIVIDE (
+            CALCULATE (
+                SUM ( fact_orders[freight_total] ),
+                fact_orders[is_revenue_order] = TRUE (),
+                fact_orders[is_in_analysis_window] = TRUE ()
+            ),
+            [Revenue Orders]
+        )
+
+    // [P1] Profitability proxies | Freight / GMV. A cost-structure proxy, not a margin (no product cost data).
+    MEASURE fact_orders[Freight Share of GMV % (proxy)] =
+        DIVIDE (
+            CALCULATE (
+                SUM ( fact_orders[freight_total] ),
+                fact_orders[is_revenue_order] = TRUE (),
+                fact_orders[is_in_analysis_window] = TRUE ()
+            ),
+            [GMV (BRL)]
+        )
+
+    // [O6] Operations | Mean per-order review score (selected review, BR-06), orders in the window.
+    MEASURE fact_orders[Avg Review Score] =
+        CALCULATE ( AVERAGE ( fact_orders[review_score] ), fact_orders[is_in_analysis_window] = TRUE () )
+
+    // [O6] Operations | Orders in the window with a review score.
+    MEASURE fact_orders[Reviewed Orders] =
+        CALCULATE ( COUNT ( fact_orders[review_score] ), fact_orders[is_in_analysis_window] = TRUE () )
+
+    // [S8] Payments | Σ payment_value of revenue orders in the window (separate from GMV, BR-04).
+    MEASURE fact_payments[Payment Value (BRL)] =
+        CALCULATE (
+            SUM ( fact_payments[payment_value] ),
+            fact_payments[is_revenue_order] = TRUE (),
+            fact_payments[is_in_analysis_window] = TRUE ()
+        )
+
+    // [S8] Payments | Mean installments per payment line, revenue orders in the window.
+    MEASURE fact_payments[Avg Installments] =
+        CALCULATE (
+            AVERAGE ( fact_payments[payment_installments] ),
+            fact_payments[is_revenue_order] = TRUE (),
+            fact_payments[is_in_analysis_window] = TRUE ()
+        )
+
+    // [S6] _Checks | Regional slice check (customer state at order time = SP). Hidden helper for reconciliation.
+    MEASURE fact_orders[GMV São Paulo check] =
+        CALCULATE ( [GMV (BRL)], fact_orders[customer_state_at_order] = "SP" )
+
+EVALUATE ROW ( "GMV (BRL)", [GMV (BRL)] )

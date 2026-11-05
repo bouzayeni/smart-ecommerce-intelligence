@@ -1,0 +1,114 @@
+table dim_customers
+	lineageTag: b84112c7-e0e3-587b-bb08-29fbd5347716
+
+	column customer_unique_id
+		dataType: string
+		lineageTag: 3690c51a-d98e-58b3-b517-ace5777f863f
+		summarizeBy: none
+		sourceColumn: customer_unique_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_zip_code_prefix
+		dataType: string
+		lineageTag: 2e8f83af-54df-5bb5-b141-a9af1b2ae08d
+		summarizeBy: none
+		sourceColumn: customer_zip_code_prefix
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_city
+		dataType: string
+		lineageTag: 9d74f700-48b8-57d2-a2c2-d74b6dc44c68
+		summarizeBy: none
+		sourceColumn: customer_city
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_state
+		dataType: string
+		lineageTag: 175514a3-92bc-5e20-8ebf-8563ee21928e
+		summarizeBy: none
+		sourceColumn: customer_state
+
+		annotation SummarizationSetBy = Automatic
+
+	column latitude
+		dataType: double
+		lineageTag: b2d055f9-5c2a-50a2-bd76-12437f1d4cc4
+		summarizeBy: none
+		sourceColumn: latitude
+
+		annotation SummarizationSetBy = Automatic
+
+	column longitude
+		dataType: double
+		lineageTag: dffc101a-600d-5e15-8f6b-95f363d66ffa
+		summarizeBy: none
+		sourceColumn: longitude
+
+		annotation SummarizationSetBy = Automatic
+
+	column first_order_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 4d398359-fd58-501e-a91e-f49736281d8b
+		summarizeBy: none
+		sourceColumn: first_order_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column last_order_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: e35e1f00-1285-5826-9099-157ea6653665
+		summarizeBy: none
+		sourceColumn: last_order_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column order_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 63a6271b-7d46-5a04-a50a-82d03456ec51
+		summarizeBy: none
+		sourceColumn: order_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column revenue_order_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 466f7b24-0d5a-5dcd-83ce-84d54c245deb
+		summarizeBy: none
+		sourceColumn: revenue_order_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column distinct_zip_prefixes
+		dataType: int64
+		formatString: 0
+		lineageTag: fbed0f86-e134-518b-a40c-1004a8aa3adf
+		summarizeBy: none
+		sourceColumn: distinct_zip_prefixes
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_repeat_customer
+		dataType: boolean
+		lineageTag: ca943b5f-95cf-5e29-a689-9f9b72c7b8a5
+		summarizeBy: none
+		sourceColumn: is_repeat_customer
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_customers = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(PostgresServer, PostgresDatabase),
+				    Data = Source{[Schema="marts", Item="dim_customers"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,61 @@
+table dim_sellers
+	lineageTag: 6ab192da-4e42-5bc2-9581-6ca5c2db3d86
+
+	column seller_id
+		dataType: string
+		lineageTag: d3cb082f-9b4a-53dd-b19e-e46a82a18380
+		summarizeBy: none
+		sourceColumn: seller_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column seller_zip_code_prefix
+		dataType: string
+		lineageTag: 15dc664e-9d4b-5be3-adf9-5dc6b3af9129
+		summarizeBy: none
+		sourceColumn: seller_zip_code_prefix
+
+		annotation SummarizationSetBy = Automatic
+
+	column seller_city
+		dataType: string
+		lineageTag: 57a9176c-6dc4-5209-bd89-2e68a988a08a
+		summarizeBy: none
+		sourceColumn: seller_city
+
+		annotation SummarizationSetBy = Automatic
+
+	column seller_state
+		dataType: string
+		lineageTag: e7f86841-9378-5a6b-8cf6-6459edd0a26a
+		summarizeBy: none
+		sourceColumn: seller_state
+
+		annotation SummarizationSetBy = Automatic
+
+	column latitude
+		dataType: double
+		lineageTag: a84d3bde-ac4d-50fc-bec3-9c6284d6d573
+		summarizeBy: none
+		sourceColumn: latitude
+
+		annotation SummarizationSetBy = Automatic
+
+	column longitude
+		dataType: double
+		lineageTag: 722b09bf-f771-5c63-b1bf-1ef3ac496401
+		summarizeBy: none
+		sourceColumn: longitude
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_sellers = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(PostgresServer, PostgresDatabase),
+				    Data = Source{[Schema="marts", Item="dim_sellers"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

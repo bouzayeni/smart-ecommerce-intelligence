@@ -1,0 +1,170 @@
+table fact_order_items
+	lineageTag: 27d5155d-4a73-55d4-b53d-4e3702736d1e
+
+	/// Item-level GMV; use for category, product and seller breakdowns.
+	measure 'Item GMV (BRL)' = ```
+			CALCULATE (
+			    SUM ( fact_order_items[gmv] ),
+			    fact_order_items[is_revenue_order] = TRUE (),
+			    fact_order_items[is_in_analysis_window] = TRUE ()
+			)
+			```
+		formatString: #,0.00
+		displayFolder: Sales
+		lineageTag: ddcc2a78-5eed-5f86-8034-c21b119cb00c
+
+	/// Item rows (one row = one unit, BR-05) of revenue orders in the window.
+	measure 'Units Sold' = ```
+			CALCULATE (
+			    COUNTROWS ( fact_order_items ),
+			    fact_order_items[is_revenue_order] = TRUE (),
+			    fact_order_items[is_in_analysis_window] = TRUE ()
+			)
+			```
+		formatString: #,0
+		displayFolder: Sales
+		lineageTag: 364b6758-3fc0-5d21-871c-5d81167ce8f7
+
+	/// Item GMV in the current context / item GMV across all categories.
+	measure 'Category Share of GMV %' = DIVIDE ( [Item GMV (BRL)], CALCULATE ( [Item GMV (BRL)], REMOVEFILTERS ( dim_products ) ) )
+		formatString: 0.00%
+		displayFolder: Sales
+		lineageTag: 08d50f94-2e6b-5e7e-a51f-a23345bdd7aa
+
+	/// Rank of the product in context by item GMV (1 = top); blank without a single product.
+	measure 'Product GMV Rank' = ```
+			IF (
+			    HASONEVALUE ( dim_products[product_id] ) && NOT ISBLANK ( [Item GMV (BRL)] ),
+			    RANKX ( ALL ( dim_products[product_id] ), [Item GMV (BRL)], , DESC, SKIP )
+			)
+			```
+		formatString: #,0
+		displayFolder: Sales
+		lineageTag: 18c91905-6338-511d-9b53-b59cee42fa65
+
+	column order_id
+		dataType: string
+		lineageTag: 9832eb28-f912-5910-85cd-092d74cdd32d
+		summarizeBy: none
+		sourceColumn: order_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column order_item_id
+		dataType: int64
+		formatString: 0
+		lineageTag: d1d8ad22-cac6-5c46-9865-bf03edac3334
+		summarizeBy: none
+		sourceColumn: order_item_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_id
+		dataType: string
+		lineageTag: df2d7f30-1c92-5071-8356-b5f2b8e6b14c
+		summarizeBy: none
+		sourceColumn: product_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column seller_id
+		dataType: string
+		lineageTag: d40f0637-8091-5b50-b0be-82f7a76d499f
+		summarizeBy: none
+		sourceColumn: seller_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_unique_id
+		dataType: string
+		lineageTag: bbf2a33e-337c-5775-9d45-53f45ad3a234
+		summarizeBy: none
+		sourceColumn: customer_unique_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column purchase_date_key
+		dataType: int64
+		formatString: 0
+		isHidden
+		lineageTag: 4be52a6d-5680-5f58-ac6b-a0fe2b9e0185
+		summarizeBy: none
+		sourceColumn: purchase_date_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column shipping_limit_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 066d8e08-d1d9-5800-8d19-69a11ee0e3d5
+		summarizeBy: none
+		sourceColumn: shipping_limit_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column price
+		dataType: double
+		lineageTag: 46ba8c6e-6b6a-5d83-8816-2853ff7bbd37
+		summarizeBy: none
+		sourceColumn: price
+
+		annotation SummarizationSetBy = Automatic
+
+	column freight_value
+		dataType: double
+		lineageTag: 21079e79-4bc4-586a-982d-42cbec1cd350
+		summarizeBy: none
+		sourceColumn: freight_value
+
+		annotation SummarizationSetBy = Automatic
+
+	column gmv
+		dataType: double
+		lineageTag: d14f048c-e9fc-54de-b843-0097e5f94901
+		summarizeBy: none
+		sourceColumn: gmv
+
+		annotation SummarizationSetBy = Automatic
+
+	column order_status
+		dataType: string
+		lineageTag: 0c960472-bb94-5217-abd9-9de38a39a1e0
+		summarizeBy: none
+		sourceColumn: order_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_revenue_order
+		dataType: boolean
+		lineageTag: 3bda6ea3-a67b-5d86-92d7-eff4ae712011
+		summarizeBy: none
+		sourceColumn: is_revenue_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_in_analysis_window
+		dataType: boolean
+		lineageTag: 840c6831-9019-51c8-8ac2-928f30cc7753
+		summarizeBy: none
+		sourceColumn: is_in_analysis_window
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_shipping_limit_outlier
+		dataType: boolean
+		lineageTag: 4efaa08b-62c5-58df-b476-678c169b8ab8
+		summarizeBy: none
+		sourceColumn: is_shipping_limit_outlier
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_order_items = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(PostgresServer, PostgresDatabase),
+				    Data = Source{[Schema="marts", Item="fact_order_items"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

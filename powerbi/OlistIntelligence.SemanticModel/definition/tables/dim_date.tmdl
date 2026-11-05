@@ -1,0 +1,159 @@
+table dim_date
+	lineageTag: 63354b17-cff6-5099-a990-fbf0f5bcf72d
+	dataCategory: Time
+
+	column date_key
+		dataType: int64
+		formatString: 0
+		isHidden
+		lineageTag: d833df92-b368-50f2-a4be-e92e6fcd88b3
+		summarizeBy: none
+		sourceColumn: date_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column date_day
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		isKey
+		lineageTag: e8830084-0971-5411-93e3-af64681b1b70
+		summarizeBy: none
+		sourceColumn: date_day
+
+		annotation SummarizationSetBy = Automatic
+
+	column year
+		dataType: int64
+		formatString: 0
+		lineageTag: e8e488fe-4568-5694-abec-4670068a2b92
+		summarizeBy: none
+		sourceColumn: year
+
+		annotation SummarizationSetBy = Automatic
+
+	column quarter
+		dataType: int64
+		formatString: 0
+		lineageTag: 49410b4a-252c-5680-ac39-72196b6476c0
+		summarizeBy: none
+		sourceColumn: quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column month
+		dataType: int64
+		formatString: 0
+		lineageTag: b9ce242f-9673-55f9-9d09-b5883662300a
+		summarizeBy: none
+		sourceColumn: month
+
+		annotation SummarizationSetBy = Automatic
+
+	column year_month
+		dataType: string
+		lineageTag: 494772dd-83e1-51c4-a319-45f9dfffc39f
+		summarizeBy: none
+		sourceColumn: year_month
+
+		annotation SummarizationSetBy = Automatic
+
+	column month_name
+		dataType: string
+		lineageTag: 49821fd4-7aab-5d6c-ad80-add27818d86e
+		summarizeBy: none
+		sourceColumn: month_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column iso_week
+		dataType: int64
+		formatString: 0
+		lineageTag: f88db29e-8f6e-5b87-84d9-a7e8022bea01
+		summarizeBy: none
+		sourceColumn: iso_week
+
+		annotation SummarizationSetBy = Automatic
+
+	column iso_day_of_week
+		dataType: int64
+		formatString: 0
+		lineageTag: a24d2566-ab85-59c6-9280-c3fcfde40ce2
+		summarizeBy: none
+		sourceColumn: iso_day_of_week
+
+		annotation SummarizationSetBy = Automatic
+
+	column day_name
+		dataType: string
+		lineageTag: 43f3a6a2-0f97-5938-a8a3-c99e7972041a
+		summarizeBy: none
+		sourceColumn: day_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_weekend
+		dataType: boolean
+		lineageTag: 5f81ecc0-4a02-5353-8709-eed3e63db2dc
+		summarizeBy: none
+		sourceColumn: is_weekend
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_holiday
+		dataType: boolean
+		lineageTag: 6256e33c-8716-501c-9036-6de6acdd9108
+		summarizeBy: none
+		sourceColumn: is_holiday
+
+		annotation SummarizationSetBy = Automatic
+
+	column holiday_name
+		dataType: string
+		lineageTag: 1a23b6d2-6abe-54e9-96bf-6f5790a288d7
+		summarizeBy: none
+		sourceColumn: holiday_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column holiday_type
+		dataType: string
+		lineageTag: 40d47719-dab4-55d1-b9d2-bb60deb48f17
+		summarizeBy: none
+		sourceColumn: holiday_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_black_friday
+		dataType: boolean
+		lineageTag: 0cdf23d7-a7d4-5780-a248-cfd9f88ba08e
+		summarizeBy: none
+		sourceColumn: is_black_friday
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_in_analysis_window
+		dataType: boolean
+		lineageTag: 561cfbc7-eb96-503c-9660-bf79343e1278
+		summarizeBy: none
+		sourceColumn: is_in_analysis_window
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_complete_month_in_window
+		dataType: boolean
+		lineageTag: cf359794-72eb-5a6a-928e-c0325a4b6904
+		summarizeBy: none
+		sourceColumn: is_complete_month_in_window
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_date = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(PostgresServer, PostgresDatabase),
+				    Data = Source{[Schema="marts", Item="dim_date"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

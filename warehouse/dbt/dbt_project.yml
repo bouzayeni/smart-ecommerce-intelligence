@@ -42,6 +42,8 @@ models:
       +materialized: table
       +grants:
         select: [analytics_reader]
+      kpi:
+        +materialized: view
 
 seeds:
   olist_warehouse:

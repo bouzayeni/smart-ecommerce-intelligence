@@ -1,0 +1,71 @@
+table dim_geolocation
+	lineageTag: 7340ed5e-b8f0-56c6-bb10-1641f5ea4af1
+
+	column zip_code_prefix
+		dataType: string
+		lineageTag: c281f216-d5a0-5adf-8a68-17a3603f8b69
+		summarizeBy: none
+		sourceColumn: zip_code_prefix
+
+		annotation SummarizationSetBy = Automatic
+
+	column latitude
+		dataType: double
+		lineageTag: 3c28410a-ec36-5cb4-82e7-f2c5672e65a0
+		summarizeBy: none
+		sourceColumn: latitude
+
+		annotation SummarizationSetBy = Automatic
+
+	column longitude
+		dataType: double
+		lineageTag: c5d9feb4-ed66-5cfc-9b33-cdc4c64aa2fc
+		summarizeBy: none
+		sourceColumn: longitude
+
+		annotation SummarizationSetBy = Automatic
+
+	column city
+		dataType: string
+		lineageTag: 1eeb88c8-9624-5a30-8d75-bec553bb9e2b
+		summarizeBy: none
+		sourceColumn: city
+
+		annotation SummarizationSetBy = Automatic
+
+	column state
+		dataType: string
+		lineageTag: ed52e955-7579-521d-9519-409c6f11736b
+		summarizeBy: none
+		sourceColumn: state
+
+		annotation SummarizationSetBy = Automatic
+
+	column point_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 1cfd17b2-aadb-5a08-85f4-d201695e9758
+		summarizeBy: none
+		sourceColumn: point_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column distinct_states
+		dataType: int64
+		formatString: 0
+		lineageTag: 26d11dd6-77dc-5a39-8219-1ec549e294bc
+		summarizeBy: none
+		sourceColumn: distinct_states
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_geolocation = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(PostgresServer, PostgresDatabase),
+				    Data = Source{[Schema="marts", Item="dim_geolocation"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

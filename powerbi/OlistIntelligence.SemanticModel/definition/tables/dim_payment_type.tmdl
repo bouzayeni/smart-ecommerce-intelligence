@@ -1,0 +1,37 @@
+table dim_payment_type
+	lineageTag: 7f40de9a-b319-5cc2-91d7-39e14753f4ca
+
+	column payment_type
+		dataType: string
+		lineageTag: b7f92dfc-59d6-5ab2-9be6-4e639d83c804
+		summarizeBy: none
+		sourceColumn: payment_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column payment_type_label
+		dataType: string
+		lineageTag: 81631489-9b7e-5bcb-ae52-4d6fd8454f0c
+		summarizeBy: none
+		sourceColumn: payment_type_label
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_card
+		dataType: boolean
+		lineageTag: 46fd0a96-3dd7-59ff-b0c4-e11a9888e8f0
+		summarizeBy: none
+		sourceColumn: is_card
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_payment_type = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(PostgresServer, PostgresDatabase),
+				    Data = Source{[Schema="marts", Item="dim_payment_type"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,125 @@
+table dim_products
+	lineageTag: a65a7e9a-4269-520d-a9a0-df47d4ab1890
+
+	column product_id
+		dataType: string
+		lineageTag: afacc385-1d91-54fb-ba79-6e75999f12db
+		summarizeBy: none
+		sourceColumn: product_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column category_name_pt
+		dataType: string
+		lineageTag: b877ee57-e559-55f1-97b6-2aa448739b16
+		summarizeBy: none
+		sourceColumn: category_name_pt
+
+		annotation SummarizationSetBy = Automatic
+
+	column category_name
+		dataType: string
+		lineageTag: b9bc61c5-96fa-5325-ad8f-6a1bb6c80239
+		summarizeBy: none
+		sourceColumn: category_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_category_label_project_provided
+		dataType: boolean
+		lineageTag: 00448c33-cad6-5017-8464-68d69eea7496
+		summarizeBy: none
+		sourceColumn: is_category_label_project_provided
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_category_missing
+		dataType: boolean
+		lineageTag: c9d0b6bc-5886-5af7-b6b3-d406e91136b2
+		summarizeBy: none
+		sourceColumn: is_category_missing
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_name_length
+		dataType: int64
+		formatString: 0
+		lineageTag: a5e374bc-3b3c-5ecb-b68f-80237c561e82
+		summarizeBy: none
+		sourceColumn: product_name_length
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_description_length
+		dataType: int64
+		formatString: 0
+		lineageTag: 2360d0e4-d156-5c6f-bbae-1bb877705be8
+		summarizeBy: none
+		sourceColumn: product_description_length
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_photos_qty
+		dataType: int64
+		formatString: 0
+		lineageTag: b9616206-8412-55b8-889e-5da597eb3448
+		summarizeBy: none
+		sourceColumn: product_photos_qty
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_weight_g
+		dataType: int64
+		formatString: 0
+		lineageTag: 336f9937-bbd5-57f6-b362-9a832380d92f
+		summarizeBy: none
+		sourceColumn: product_weight_g
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_length_cm
+		dataType: int64
+		formatString: 0
+		lineageTag: 4b60228b-f292-50ac-805d-07a5cbc6b536
+		summarizeBy: none
+		sourceColumn: product_length_cm
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_height_cm
+		dataType: int64
+		formatString: 0
+		lineageTag: 7a92008e-d29c-5b57-ba44-f0e6de699b80
+		summarizeBy: none
+		sourceColumn: product_height_cm
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_width_cm
+		dataType: int64
+		formatString: 0
+		lineageTag: 1afdf33f-0688-5547-88a5-5043ab8e0373
+		summarizeBy: none
+		sourceColumn: product_width_cm
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_volume_cm3
+		dataType: int64
+		formatString: 0
+		lineageTag: 635414a5-0271-567a-b723-9f9d6672c80b
+		summarizeBy: none
+		sourceColumn: product_volume_cm3
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_products = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(PostgresServer, PostgresDatabase),
+				    Data = Source{[Schema="marts", Item="dim_products"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table
