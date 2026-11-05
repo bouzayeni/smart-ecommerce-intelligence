@@ -20,6 +20,8 @@ __pycache__/
 # ML artifacts
 mlflow/mlruns/
 mlflow/artifacts/
+mlflow/*.db
+mlruns/
 models/*
 !models/.gitkeep
 
