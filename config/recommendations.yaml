@@ -1,0 +1,25 @@
+# Product recommendations (Phase 8). Rationale and results: docs/model_cards/recommendations.md
+# Temporal evaluation: fit on purchases before the cutoff, evaluate on purchases in
+# [cutoff, end). Candidates are only products sold before the cutoff: a product's listing
+# date is unknown, so recommending a product first sold later would leak its existence.
+
+random_state: 42
+k: 10
+validation: {cutoff: 2018-03-01, end: 2018-06-01}   # model and hyperparameter selection
+test: {cutoff: 2018-06-01, end: 2018-08-22}         # final evaluation, used once
+# Already-bought products stay recommendable: 11.5% of returning buyers re-bought a product
+# they had bought before (measured in Phase 8 on the test window).
+exclude_purchased: false
+bootstrap_resamples: 500
+
+models:
+  popularity: {window_days: [30, 90, 180, 10000]}
+  state_popularity: {window_days: [90, 180], min_state_sales: 30}
+  item_knn: {neighbours: [50, 200]}
+  svd: {components: [16, 64]}
+  content: {price_bands: 10}
+  category_popular: {window_days: [90, 180]}
+
+serving:
+  item_neighbours: 20     # "customers also bought" list stored per product
+  popular_list_size: 50   # cold-start lists (global and per state)

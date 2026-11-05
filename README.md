@@ -22,7 +22,7 @@ permission-controlled AI business assistant.
 | 5 | SQL analytics and Power BI | Done — [KPI dictionary](docs/kpi_dictionary.md), [Power BI](powerbi/documentation/report_spec.md); DAX value check pending a refresh in Desktop |
 | 6 | RFM, repurchase propensity and CLV | Done — model cards: [repurchase](docs/model_cards/repurchase_propensity.md), [90-day spend](docs/model_cards/customer_spend_90d.md), [RFM](docs/model_cards/rfm_segmentation.md) |
 | 7 | Sales forecasting and anomaly detection | Done — model cards: [forecasting](docs/model_cards/sales_forecasting.md), [anomalies](docs/model_cards/anomaly_detection.md) |
-| 8 | Recommendations | Not started |
+| 8 | Recommendations | Done — [model card](docs/model_cards/recommendations.md) |
 | 9 | FastAPI backend | Not started |
 | 10 | React frontend | Not started |
 | 11 | AI business assistant | Not started |
@@ -124,7 +124,10 @@ uv run --group ml mlflow ui --backend-store-uri sqlite:///mlflow/mlflow.db   # b
 uv run --all-groups python -m ml.train_forecasting
 uv run --all-groups python -m ml.detect_anomalies
 
-# 10. Git hooks (ruff, large-file guard, private-key detection)
+# 10. Product recommendations (temporal evaluation, serving tables in ml.*)
+uv run --all-groups python -m ml.train_recommendations
+
+# 11. Git hooks (ruff, large-file guard, private-key detection)
 uv run pre-commit install
 ```
 
