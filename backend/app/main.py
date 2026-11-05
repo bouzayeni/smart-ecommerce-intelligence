@@ -10,7 +10,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.middleware import SlowAPIMiddleware
 
-from app.api.routes import analytics, auth
+from app.api.routes import analytics, assistant, auth
 from app.core.config import get_settings
 from app.core.errors import ApiError, register_error_handlers
 from app.core.observability import RequestContextMiddleware, configure_logging
@@ -63,6 +63,7 @@ def create_app() -> FastAPI:
     api = APIRouter(prefix="/api")
     api.include_router(auth.router)
     api.include_router(analytics.router)
+    api.include_router(assistant.router)
     api.include_router(health)
     app.include_router(api)
     return app

@@ -282,3 +282,49 @@ export interface DataQuality {
 export interface ApiErrorBody {
   error: { code: string; message: string; request_id: string | null; details: unknown };
 }
+
+export interface AssistantStatus {
+  llm_enabled: boolean;
+  provider: string;
+  model: string | null;
+  effort: string;
+  max_iterations: number;
+  mode: "assistant" | "tools_only";
+  example_questions: string[];
+}
+
+export interface ToolMeta {
+  metric: string;
+  window: string;
+  source: string;
+  filters: Record<string, unknown>;
+  rows: number;
+}
+
+export interface AssistantToolCall {
+  name: string;
+  input: Record<string, unknown>;
+  status: "ok" | "error";
+  meta: ToolMeta | null;
+  error: string | null;
+  ms: number;
+}
+
+export interface AssistantAnswer {
+  status: "answered" | "refused" | "iteration_limit" | "truncated" | "error";
+  answer: string;
+  model: string | null;
+  served_by_fallback: boolean;
+  tool_calls: AssistantToolCall[];
+  iterations: number;
+  usage: { input_tokens: number; output_tokens: number };
+  latency_ms: number;
+  disclaimer: string;
+}
+
+export interface AssistantTool {
+  name: string;
+  description: string;
+  min_role: Role;
+  input_schema: { properties?: Record<string, unknown> };
+}

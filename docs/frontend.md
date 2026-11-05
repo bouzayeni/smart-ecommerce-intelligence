@@ -28,7 +28,7 @@ portable Node LTS on another drive; any Node in that range works.
 | Churn prediction | `/churn` | analyst | risk-band list, model metrics with CIs, what-if prediction (on-demand model) |
 | CLV prediction | `/clv` | analyst | predicted 90-day spend by segment, top predicted spenders, what-if |
 | Recommendations | `/recommendations` | analyst | per-customer (cold start by state), "customers also bought", offline metrics |
-| AI business assistant | `/assistant` | viewer | placeholder until Phase 11; shows no simulated answers |
+| AI business assistant | `/assistant` | viewer | chat with plain-text answers and a "Data used" panel per answer; tools catalog when no LLM key is configured |
 | Model monitoring | `/models` | viewer (registry: admin) | MLflow registry, table freshness, held-out metrics |
 | Data quality | `/data-quality` | admin | the 79-check catalog, with the dataset it ran on |
 | Settings | `/settings` | viewer | profile, role, session, data scope |
