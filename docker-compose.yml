@@ -21,6 +21,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./infrastructure/docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./infrastructure/postgres/init_roles_schemas.sql:/opt/olist/init_roles_schemas.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s

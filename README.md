@@ -78,10 +78,20 @@ cp .env.example .env
 #    archive manually and pass it with --from-zip path/to/archive.zip
 uv run python -m data_engineering.scripts.download_dataset
 
-# 4. Database: PostgreSQL 16 with roles + schemas created on first start
+# 4a. Database with Docker: PostgreSQL 16, roles + schemas created on first start
 docker compose up -d postgres
 docker compose ps                      # wait for "healthy"
+
+# 4b. Or native PostgreSQL 16 (no Docker). On Windows:
+#       winget install -e --id PostgreSQL.PostgreSQL.16 --override "--mode unattended
+#         --superpassword <POSTGRES_SUPERUSER_PASSWORD from .env> --serverport 5432
+#         --enable-components server,commandlinetools --disable-components pgAdmin,stackbuilder"
+#     then create the database, roles and schemas (idempotent, safe to re-run):
+uv run python -m data_engineering.scripts.setup_local_db
+
+# Either way, verify:
 uv run python -m data_engineering.scripts.check_db
+uv run pytest -m db
 
 # 5. Git hooks (ruff, large-file guard, private-key detection)
 uv run pre-commit install
@@ -99,7 +109,9 @@ uv run python -m data_engineering.scripts.make_sample  # regenerate data/sample 
 
 ## Database roles
 
-Created by `infrastructure/docker/postgres/init/01_init_roles_schemas.sh` on first start:
+Defined once in `infrastructure/postgres/init_roles_schemas.sql`. It is applied by the Docker
+init script or by `setup_local_db.py`. Passwords are read from environment variables via psql
+`\getenv`, so they never appear on a command line.
 
 | Role | Access |
 |---|---|
@@ -107,8 +119,10 @@ Created by `infrastructure/docker/postgres/init/01_init_roles_schemas.sh` on fir
 | `analytics_ro` | `SELECT` on `marts` and `ml` only; read-only transactions; 15 s statement timeout. Used by BI and the AI assistant. |
 | `app_user` | Reads `marts` and `ml`; owns `app` (users, refresh tokens, audit log). |
 
-The init script runs only when the data volume is empty. To re-run it:
-`docker compose down -v` (this **deletes** the database volume).
+With Docker, the init script runs only when the data volume is empty. To re-run it, use
+`docker compose down -v`, which **deletes** the database volume. On a native install, re-run
+`setup_local_db.py`. For a native install, also set `listen_addresses = 'localhost'` (the EDB
+installer defaults to `*`) to match the Docker setup, which binds to localhost only.
 
 ## License
 

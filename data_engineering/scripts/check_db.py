@@ -24,9 +24,9 @@ def main() -> int:
     etl = create_engine(settings.database_url("etl"))
     with etl.connect() as conn:
         version = conn.execute(text("SHOW server_version")).scalar_one()
-        schemas = set(
-            conn.execute(text("SELECT schema_name FROM information_schema.schemata")).scalars()
-        )
+        # pg_namespace, not information_schema: the latter hides schemas the role can't use
+        # (etl_user correctly has no rights on `app`).
+        schemas = set(conn.execute(text("SELECT nspname FROM pg_namespace")).scalars())
     log.info("Connected as %s, PostgreSQL %s", settings.etl_db_user, version)
     missing = EXPECTED_SCHEMAS - schemas
     if missing:
