@@ -25,7 +25,7 @@ permission-controlled AI business assistant.
 | 8 | Recommendations | Done — [model card](docs/model_cards/recommendations.md) |
 | 9 | FastAPI backend | Done — [API docs](docs/api.md) |
 | 10 | React frontend | Done — [frontend docs](docs/frontend.md) |
-| 11 | AI business assistant | Not started |
+| 11 | AI business assistant | Done — [assistant docs](docs/assistant.md); live LLM check pending an `ANTHROPIC_API_KEY` |
 | 12 | MLflow, Docker, CI/CD, security | Not started |
 | 13 | Integration and end-to-end tests | Not started |
 | 14 | Documentation and portfolio | Not started |

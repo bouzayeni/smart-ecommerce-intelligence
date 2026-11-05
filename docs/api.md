@@ -78,6 +78,10 @@ Denied requests return 403 and are written to `app.audit_log`.
 | GET | `/api/models/metrics` | Test metrics of the customer models, forecasting and recommendations |
 | GET | `/api/models/status` | MLflow registry versions and freshness of the `ml.*` tables |
 | GET | `/api/data-quality` | Latest results of the 79-check catalog (`assess_quality.py`) |
+| GET | `/api/assistant/status` | Whether the LLM is configured (`mode`: assistant or tools_only), model, effort, example questions |
+| GET | `/api/assistant/tools` | Assistant tools available to the caller's role, with argument schemas |
+| POST | `/api/assistant/tools/{name}` | Run one tool directly (no LLM), same validation and role checks. 403 above role, 422 invalid arguments or rejected SQL |
+| POST | `/api/assistant/query` | `{"question", "history"?}`: answer from read-only tools, with every tool call (metric, window, filters, rows) and token usage. 503 without an API key. See [assistant.md](assistant.md) |
 | GET | `/api/health`, `/api/health/ready` | Liveness; readiness (both database roles reachable) |
 
 ## Errors, logging, limits
@@ -91,8 +95,9 @@ Denied requests return 403 and are written to `app.audit_log`.
 - **Structured logs:** JSON lines to stdout, one access line per request (method, path,
   status, duration, user id).
 - **Rate limits** (slowapi, per client IP): `RATE_LIMIT_DEFAULT` (120/minute) everywhere and
-  `RATE_LIMIT_AUTH` (10/minute) on register, login and refresh, which return 429 when
-  exceeded. The in-memory store suits a single process; with several workers, use Redis.
+  `RATE_LIMIT_AUTH` (10/minute) on register, login and refresh, and
+  `RATE_LIMIT_ASSISTANT` (20/minute) on assistant queries and tool runs; 429 when exceeded.
+  The in-memory store suits a single process; with several workers, use Redis.
 - **CORS:** only `CORS_ALLOWED_ORIGINS`; methods GET, POST and PATCH; no credentialed
   cookies (bearer tokens).
 - **Security headers:** `nosniff`, `X-Frame-Options: DENY`, `no-referrer`, `no-store`, and a
@@ -100,7 +105,7 @@ Denied requests return 403 and are written to `app.audit_log`.
 
 ## Tests
 
-`backend/tests` (54 tests, `pytest -m db`) run against an isolated `test_app_*` schema,
+`backend/tests` (`pytest -m db`; assistant tests are described in [assistant.md](assistant.md)) run against an isolated `test_app_*` schema,
 migrated with Alembic and dropped afterwards. Analytics reads use the real marts. They cover:
 - the auth flow, password rules, token rotation and reuse revocation
 - tampered, expired, wrong-type and `alg: none` tokens

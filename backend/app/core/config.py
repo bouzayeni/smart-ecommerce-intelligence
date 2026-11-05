@@ -40,6 +40,15 @@ class Settings(BaseSettings):
     rate_limit_default: str = "120/minute"
     rate_limit_auth: str = "10/minute"
 
+    # AI assistant (Phase 11)
+    llm_provider: str = "anthropic"
+    anthropic_api_key: SecretStr = SecretStr("")
+    anthropic_model: str = "claude-opus-5-5"
+    assistant_effort: str = Field("medium", pattern="^(low|medium|high|xhigh|max)$")
+    assistant_max_iterations: int = Field(6, ge=1, le=12)
+    assistant_timeout_s: float = Field(120, ge=5, le=600)
+    rate_limit_assistant: str = "20/minute"
+
     mlflow_tracking_uri: str = ""
     data_quality_results_path: Path = (
         REPO_ROOT / "data" / "processed" / "quality" / "dq_results.json"
