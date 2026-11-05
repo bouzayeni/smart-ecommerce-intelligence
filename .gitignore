@@ -1,0 +1,44 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Data: raw/processed are downloaded or generated, never committed (license + size).
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ML artifacts
+mlflow/mlruns/
+mlflow/artifacts/
+models/*
+!models/.gitkeep
+
+# dbt
+warehouse/dbt/**/target/
+warehouse/dbt/**/dbt_packages/
+warehouse/dbt/**/logs/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Power BI (commit the PBIP text format, not caches or .pbix binaries)
+*.pbix
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

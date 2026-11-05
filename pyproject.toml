@@ -1,0 +1,44 @@
+[project]
+name = "smart-ecommerce-intelligence"
+version = "0.1.0"
+description = "End-to-end e-commerce analytics, ML and BI platform built on the Olist public dataset."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "pandas>=2.2,<4",
+    "sqlalchemy>=2.0,<3",
+    "psycopg[binary]>=3.2,<4",
+    "pydantic>=2.8,<3",
+    "pydantic-settings>=2.4,<3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.6",
+    "pre-commit>=3.8",
+]
+
+[tool.uv]
+# Not an installable package: modules are run from the repo root (`python -m ...`).
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+markers = [
+    "db: requires a running PostgreSQL instance (docker compose up -d postgres)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["notebooks", "frontend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "N"]
+
+[tool.ruff.lint.per-file-ignores]
+# One-off report script: long f-string report lines are clearer unwrapped.
+"data_engineering/scripts/profile_raw.py" = ["E501"]
