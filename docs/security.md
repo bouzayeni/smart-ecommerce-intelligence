@@ -33,6 +33,15 @@ database credentials and the LLM API key.
 | bandit 1.8.6 (medium+) | `backend/app`, `ml`, `data_engineering` | 1 finding (B310 `urlopen` in the dataset downloader), fixed by refusing non-HTTPS URLs |
 | gitleaks, Trivy | Repository history, images | Not run locally (not installed; Docker unavailable on this machine). They run in CI |
 
+## Fixed during integration testing (Phase 13)
+
+- **Authorization denials were not persisted.** `require_role` added the audit row and then
+  raised the 403, and the request session rolled back on the exception, so
+  `app.audit_log` never received the row (the documented behaviour). The same happened to
+  assistant tool or SQL denials from `POST /api/assistant/tools/{name}`. Both now commit the
+  audit row before raising. Covered by
+  `test_journeys.py::test_promotion_takes_effect_immediately_and_demotion_revokes_access`.
+
 ## Known gaps
 
 - **No TLS termination** in the compose stack. Ports are bound to localhost; a real deployment

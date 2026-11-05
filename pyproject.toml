@@ -42,6 +42,9 @@ dl = [
     "statsmodels>=0.14",
     "tensorflow>=2.18",
 ]
+e2e = [
+    "playwright>=1.48",
+]
 ml = [
     "matplotlib>=3.9",
     "mlflow>=2.17",
@@ -68,6 +71,7 @@ addopts = "-ra --import-mode=importlib"
 markers = [
     "db: requires a running PostgreSQL instance (docker compose up -d postgres)",
     "llm: calls the real LLM API (costs money); run with RUN_LLM_TESTS=1",
+    "e2e: browser end-to-end tests (Playwright + installed Edge/Chrome); run with RUN_E2E=1",
 ]
 
 [tool.ruff]

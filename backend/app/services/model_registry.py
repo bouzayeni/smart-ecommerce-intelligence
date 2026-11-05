@@ -23,7 +23,7 @@ CHAMPION = "champion"
 @dataclass
 class LoadedModel:
     name: str
-    version: str
+    version: int
     model: object
     source: str = CHAMPION  # "champion" or "latest (no champion alias)"
 
@@ -97,7 +97,7 @@ def load_latest(name: str) -> LoadedModel:
                 "Model %s has no %s alias; serving latest v%s", name, CHAMPION, version.version
             )
         log.info("Loaded model %s v%s (%s)", name, version.version, source)
-        return LoadedModel(name, version.version, model, source)
+        return LoadedModel(name, int(version.version), model, source)
 
 
 def _load_bundle(name: str, bundle_dir: Path) -> LoadedModel:
@@ -110,4 +110,5 @@ def _load_bundle(name: str, bundle_dir: Path) -> LoadedModel:
     with _lock:
         model = mlflow.sklearn.load_model(str(bundle_dir / name / "model"))
     log.info("Loaded model %s v%s from serving bundle", name, manifest["version"])
-    return LoadedModel(name, manifest["version"], model, f"bundle ({manifest['alias']})")
+    # Same type as the registry path (and ml.* model_version bigint columns).
+    return LoadedModel(name, int(manifest["version"]), model, f"bundle ({manifest['alias']})")

@@ -89,6 +89,7 @@ def run_tool(
         raise not_found("Tool")
     payload, is_error = service.execute_tool(conn, session, request, user, name, args or {})
     if is_error:
+        session.commit()  # keep denial/rejected-SQL audit rows: the error response rolls back
         status_code = 403 if payload.get("code") == "forbidden" else 422
         raise ApiError(
             status_code, payload.get("code", "tool_error"), payload["error"], payload.get("details")
