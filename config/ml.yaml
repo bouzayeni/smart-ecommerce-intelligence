@@ -1,0 +1,50 @@
+# Customer intelligence models (Phase 6). Rationale: docs/model_cards/*.md.
+# Snapshot design: features use only information available before the cutoff T; the label
+# window is [T, T + horizon). Splits must satisfy T_train + horizon <= T_validation and
+# T_validation + horizon <= T_test (checked in ml/config.py).
+
+random_state: 42
+horizon_days: 90
+
+snapshots:
+  # Monthly training cutoffs: each label window ends before the validation cutoff.
+  train: [2017-03-01, 2017-04-01, 2017-05-01, 2017-06-01, 2017-07-01, 2017-08-01,
+          2017-09-01, 2017-10-01]
+  validation: 2018-01-01   # model selection, calibration, decision threshold
+  test: 2018-05-01         # final evaluation only
+  scoring: 2018-08-22      # analysis_end + 1 day; label unknown
+
+features:
+  top_states: 10           # other states grouped as "other"
+  top_categories: 15
+
+rfm:
+  reference_date: 2018-08-22
+  # Recency and monetary: quintile scores (5 = most recent / highest spend).
+  # Frequency: rule-based because ~97% of customers have one order.
+  frequency_scores: {1: 1, 2: 3, 3: 5}   # orders -> score; >= largest key gets its score
+  # First matching rule wins. Conditions are inclusive bounds on scores.
+  segments:
+    - {name: Champions,           r_min: 4, f_min: 3, m_min: 4}
+    - {name: Loyal Customers,     r_min: 3, f_min: 3}
+    - {name: At Risk,             r_max: 2, f_min: 3}
+    - {name: Potential Loyalists, r_min: 4, f_max: 1, m_min: 4}
+    - {name: New Customers,       r_min: 4, f_max: 1}
+    - {name: Hibernating,         r_min: 2, r_max: 3, f_max: 1}
+    - {name: Lost Customers,      r_max: 1}
+
+repurchase:
+  # Base rate is ~0.6%, so calibrated churn risk is > 99% for almost everyone: absolute
+  # thresholds would put every customer in one band. Bands use propensity deciles instead
+  # (decile 1 = least likely to repurchase).
+  risk_bands: {high: [1, 5], medium: [6, 8], low: [9, 10]}
+  models:
+    logistic_regression: {C: [0.1, 1.0]}
+    random_forest: {n_estimators: [300], min_samples_leaf: [20, 50], max_depth: [null]}
+    xgboost: {n_estimators: [400], max_depth: [3, 5], learning_rate: [0.05]}
+
+clv:
+  models:
+    random_forest: {n_estimators: [300], min_samples_leaf: [20, 50]}
+    xgboost: {n_estimators: [400], max_depth: [3, 5], learning_rate: [0.05],
+              objective: ["reg:squarederror", "reg:tweedie"]}
