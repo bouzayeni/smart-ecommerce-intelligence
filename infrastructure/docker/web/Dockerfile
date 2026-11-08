@@ -7,7 +7,7 @@ RUN npm ci --no-audit --no-fund
 COPY frontend ./
 RUN npm run build
 
-FROM nginxinc/nginx-unprivileged:1.30.6-alpine
+FROM nginxinc/nginx-unprivileged:1.31.7-alpine
 # Apply Alpine security fixes released after the base image was built, then drop back to the
 # image's unprivileged nginx user (uid 101).
 USER root
