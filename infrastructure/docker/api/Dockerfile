@@ -1,6 +1,6 @@
 # FastAPI backend. Build from the repo root:
 #   docker build -f infrastructure/docker/api/Dockerfile -t sei-api .
-FROM python:3.11-slim-bookworm AS build
+FROM python:3.15-slim-bookworm AS build
 COPY --from=ghcr.io/astral-sh/uv:0.13.7 /uv /bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never \
     UV_PROJECT_ENVIRONMENT=/opt/venv
@@ -10,7 +10,7 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --group backend --group ml
 
-FROM python:3.11-slim-bookworm AS runtime
+FROM python:3.15-slim-bookworm AS runtime
 # libgomp: OpenMP runtime needed by xgboost/scikit-learn wheels.
 # The app runs from /opt/venv. The base image's own pip/setuptools/wheel are unused and carry
 # vendored packages with known CVEs (Trivy), so they are removed from the runtime image.
